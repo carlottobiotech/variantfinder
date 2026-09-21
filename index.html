@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Variant Finder — Genomic Variant Explorer</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'sans-serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        },
+        colors: {
+          dark: { 900: '#0f172a', 800: '#1e293b', 700: '#334155', 600: '#475569' },
+          brand: { 500: '#3b82f6', 400: '#60a5fa' }
+        }
+      }
+    }
+  }
+</script>
+<style>
+/* =====================================================================
+   VARIANT FINDER — STYLESHEET (dark scientific UI)
+   ===================================================================== */
+:root{
+  --bg:#080b10; --bg-2:#0a0e14; --panel:#0f141c; --panel-2:#121821; --panel-3:#161d28;
+  --border:#1a212c; --border-2:#232c3a; --txt:#e6edf5; --txt-2:#a8b4c4;
+  --muted:#6b7a8f; --dim:#4a5666; --blue:#3d7eff; --blue-hover:#5590ff;
+  --green:#22c55e; --green-bg:rgba(34,197,94,.09); --green-bd:rgba(34,197,94,.35);
+  --green-txt:#4ade80; --red:#ef4444; --orange:#f59e0b; --purple:#a78bfa;
+  --radius:10px; --radius-sm:7px;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{ margin:0; font-family:var(--sans); font-size:13.5px; line-height:1.5; color:var(--txt); background:var(--bg); -webkit-font-smoothing:antialiased; }
+h1,h2,h3,h4{margin:0;font-weight:600}
+button{font-family:inherit;font-size:inherit;color:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:inherit}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#1e2836;border-radius:8px;border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:#2b394b;background-clip:content-box}
+
+.topbar{ display:flex;align-items:center;justify-content:space-between;gap:16px; padding:11px 22px;border-bottom:1px solid var(--border);background:var(--bg-2); flex-wrap:wrap; }
+.brand{display:flex;align-items:center;gap:11px}
+.logo{ width:34px;height:34px;border-radius:8px; background:linear-gradient(135deg,#1e3a8a,#2563eb); display:grid;place-items:center;flex:none; box-shadow:0 0 0 1px rgba(61,126,255,.3),0 4px 12px rgba(61,126,255,.25); }
+.logo svg{width:20px;height:20px}
+.brand h1{ font-size:13px;letter-spacing:.14em;font-weight:700;color:#fff; }
+.brand .sub{font-size:9.5px;color:var(--muted);letter-spacing:.14em;margin-top:1px;text-transform:uppercase}
+.topbar-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.chip-btn{ display:inline-flex;align-items:center;gap:6px; background:var(--panel-2);border:1px solid var(--border);color:var(--txt-2); padding:6px 11px;border-radius:999px;font-size:11.5px;letter-spacing:.02em; transition:background .15s,border-color .15s,color .15s; }
+.chip-btn:hover{border-color:var(--border-2);color:var(--txt)}
+
+.hero{ padding:36px 22px 22px;text-align:center; border-bottom:1px solid var(--border); background:radial-gradient(900px 260px at 50% 0%,rgba(61,126,255,.08),transparent 70%),var(--bg-2); }
+.hero h2{ font-size:26px;font-weight:600;letter-spacing:-.01em; color:#f3f6fb;margin-bottom:22px; }
+.search-row{ display:flex;gap:10px;align-items:center; max-width:760px;margin:0 auto;flex-wrap:wrap;justify-content:center; }
+.search-input{ flex:1;min-width:240px;position:relative;display:flex;align-items:center; background:#0a1018;border:1px solid var(--border-2);border-radius:9px; transition:border-color .18s,box-shadow .18s; }
+.search-input:focus-within{border-color:rgba(61,126,255,.6);box-shadow:0 0 0 3px rgba(61,126,255,.13)}
+.search-input svg{position:absolute;left:13px;width:15px;height:15px;color:var(--dim);pointer-events:none}
+#queryInput{ flex:1;background:transparent;border:none;outline:none;color:var(--txt); padding:13px 40px 13px 38px;font-size:14.5px;letter-spacing:.01em; }
+#queryInput::placeholder{color:var(--dim)}
+.search-input .clear{ position:absolute;right:8px;background:transparent;border:none;color:var(--muted); width:26px;height:26px;border-radius:6px;display:grid;place-items:center; }
+.search-input .clear:hover{color:var(--txt);background:var(--panel-3)}
+#assemblySelect{ background:#0a1018;border:1px solid var(--border-2);border-radius:9px; padding:12px 32px 12px 14px;color:var(--txt);font-size:13px; appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M2 4l3 3 3-3' fill='none' stroke='%236b7a8f' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>"); background-repeat:no-repeat;background-position:right 11px center; cursor:pointer; }
+#searchBtn{ background:var(--blue);border:1px solid var(--blue);color:#fff; padding:12px 22px;border-radius:9px;font-weight:600;letter-spacing:.08em;font-size:12px; transition:background .15s,box-shadow .15s,transform .1s; display:inline-flex;align-items:center;gap:8px;white-space:nowrap; }
+#searchBtn:hover{background:var(--blue-hover);box-shadow:0 4px 14px rgba(61,126,255,.35)}
+#searchBtn:active{transform:translateY(1px)}
+#searchBtn[disabled]{opacity:.7;pointer-events:none}
+
+.examples-row{ display:flex;align-items:center;gap:12px;justify-content:center; flex-wrap:wrap;margin-top:16px;font-size:12px;color:var(--muted); }
+.type-chip{ display:inline-flex;align-items:center;gap:5px; border:1px solid var(--border-2);border-radius:6px;padding:3px 9px; background:var(--panel-2);color:var(--txt-2);font-size:11px;letter-spacing:.04em; }
+.type-chip b{color:var(--blue);font-weight:600;}
+.examples-row .ex{color:var(--blue);cursor:pointer;font-weight:500;background:none;border:none;padding:0;font-size:inherit}
+.examples-row .ex:hover{text-decoration:underline}
+
+.recent-row{ display:flex;gap:6px;flex-wrap:wrap;justify-content:center; margin-top:14px;font-size:11.5px;color:var(--dim);align-items:center; }
+.recent-chip{ background:var(--panel-2);border:1px solid var(--border);border-radius:999px; padding:3px 10px;font-size:11.5px;color:var(--txt-2);font-family:var(--mono); transition:border-color .15s,color .15s; }
+.recent-chip:hover{border-color:rgba(61,126,255,.5);color:var(--blue)}
+
+/* ---------- Layout ---------- */
+.layout{ display:grid;grid-template-columns:216px minmax(0,1fr);gap:20px; max-width:1560px;margin:0 auto;padding:20px 22px 60px; }
+
+/* ---------- Sidebar / filters ---------- */
+.filters{ background:var(--panel);border:1px solid var(--border);border-radius:var(--radius); padding:14px;align-self:start;position:sticky;top:14px;max-height:calc(100vh - 30px);overflow:auto; }
+.filter-head{ display:flex;align-items:center;justify-content:space-between; padding-bottom:10px;margin-bottom:12px;border-bottom:1px solid var(--border); }
+.filter-head h3{font-size:12px;letter-spacing:.04em;color:var(--txt-2);font-weight:600}
+.filter-head .clear{ background:none;border:none;color:var(--muted);font-size:11px;padding:2px 4px; }
+.filter-head .clear:hover{color:var(--blue)}
+.filter-section{margin-bottom:16px}
+.filter-section .section-title{ font-size:9.5px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase; margin-bottom:7px;font-weight:600; }
+.check{ display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--txt-2); padding:4px 0;cursor:pointer; }
+.check input{accent-color:var(--blue);width:13px;height:13px;cursor:pointer}
+.filter-section input[type="text"], .filter-section select{ width:100%;background:#0a1018;border:1px solid var(--border-2);border-radius:6px; padding:6px 9px;color:var(--txt);font-size:12px; }
+.filter-section input:focus, .filter-section select:focus{outline:none;border-color:rgba(61,126,255,.55)}
+.filter-count{ font-size:11px;color:var(--muted);font-family:var(--mono); padding:9px 0;border-top:1px solid var(--border);margin-top:6px; }
+.filter-count b{color:var(--blue);font-weight:600}
+
+/* ---------- Main column ---------- */
+.main-col{display:flex;flex-direction:column;gap:16px;min-width:0}
+
+.pipeline{ display:flex;align-items:flex-start;justify-content:space-between; padding:16px 8px 10px;position:relative;background:var(--panel); border:1px solid var(--border);border-radius:var(--radius); }
+.pipeline::before{ content:"";position:absolute;top:28px;left:11%;right:11%;height:1px; background:var(--border-2);z-index:0; }
+.pipeline .step{ flex:1;display:flex;flex-direction:column;align-items:center;gap:7px; position:relative;z-index:1; }
+.pipeline .circle{ width:24px;height:24px;border-radius:50%; background:var(--panel-2);border:1px solid var(--border-2); display:grid;place-items:center;font-size:11px;color:var(--muted); transition:all .25s; }
+.pipeline .label{ font-size:9.5px;letter-spacing:.15em;color:var(--muted); text-transform:uppercase;font-weight:600; }
+.pipeline .step.active .circle{ background:var(--blue);border-color:var(--blue);color:#fff; box-shadow:0 0 0 4px rgba(61,126,255,.16); }
+.pipeline .step.active .label{color:var(--blue)}
+.pipeline .step.done .circle{ background:var(--green);border-color:var(--green);color:#fff; }
+.pipeline .step.done .label{color:var(--green-txt)}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat-card{ background:var(--panel);border:1px solid var(--border);border-radius:var(--radius); padding:12px 14px;position:relative;transition:border-color .15s,transform .15s; }
+.stat-card:hover{border-color:var(--border-2);transform:translateY(-1px)}
+.stat-card .head{ display:flex;align-items:center;justify-content:space-between;gap:8px; font-size:9.5px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase; font-weight:600; }
+.stat-card .val{ font-size:24px;font-weight:600;color:#fff;margin-top:6px;font-family:var(--mono); letter-spacing:-.01em; }
+
+/* ---------- Table ---------- */
+.panel{ background:var(--panel);border:1px solid var(--border);border-radius:var(--radius); overflow:hidden; }
+.table-toolbar{ display:flex;align-items:center;gap:10px; padding:10px 14px;border-bottom:1px solid var(--border); }
+.table-toolbar .search-mini{ flex:1;max-width:320px;position:relative;display:flex;align-items:center; background:#0a1018;border:1px solid var(--border-2);border-radius:7px; transition:border-color .15s; }
+.table-toolbar .search-mini:focus-within{border-color:rgba(61,126,255,.5)}
+.table-toolbar .search-mini svg{ position:absolute;left:10px;width:13px;height:13px;color:var(--dim);pointer-events:none; }
+#tableSearch{ flex:1;background:transparent;border:none;outline:none;color:var(--txt); padding:7px 10px 7px 30px;font-size:12.5px; }
+#tableSearch::placeholder{color:var(--dim)}
+.table-toolbar .count{ font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap; }
+.table-toolbar .spacer{flex:1}
+
+.table-wrap{overflow:auto;max-height:640px}
+table.variants{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px}
+table.variants thead th{ position:sticky;top:0;z-index:3;background:#0d131c; border-bottom:1px solid var(--border-2); padding:11px 14px;text-align:left;font-size:9.5px;letter-spacing:.14em; text-transform:uppercase;color:var(--muted);font-weight:600; white-space:nowrap;user-select:none; }
+table.variants thead th.sortable{cursor:pointer}
+table.variants thead th.sortable:hover{color:var(--txt-2)}
+table.variants thead th .arrow{color:var(--blue);font-size:8px;margin-left:5px}
+table.variants tbody td{ padding:11px 14px;border-bottom:1px solid rgba(26,33,44,.7); vertical-align:middle;white-space:nowrap;max-width:280px; overflow:hidden;text-overflow:ellipsis; }
+table.variants tbody tr{transition:background .12s; cursor: pointer;}
+table.variants tbody tr:hover{background:rgba(61,126,255,.045)}
+table.variants tbody tr.selected{background:rgba(61,126,255,.09)}
+table.variants .empty-row td{ text-align:center;color:var(--dim);padding:0; }
+.empty-state{ display:flex;flex-direction:column;align-items:center;justify-content:center; padding:70px 20px;gap:12px;color:var(--muted); }
+.empty-state p{margin:0;font-size:12.5px}
+
+.mono{font-family:var(--mono);font-size:12px}
+.rsid-link{color:var(--blue);font-family:var(--mono);font-size:12px; display:inline-flex; align-items:center; gap: 4px; position:relative; z-index:10;}
+.rsid-link svg {opacity: 0.8;}
+.rsid-link:hover{color:var(--blue-hover);text-decoration:underline}
+
+.badge{ display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:5px; font-size:10.5px;letter-spacing:.02em;border:1px solid;white-space:nowrap;font-weight:500; }
+.badge.pathogenic{color:#fca5a5;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.1)}
+.badge.likely-pathogenic{color:#fdba74;border-color:rgba(251,146,60,.4);background:rgba(251,146,60,.1)}
+.badge.vus{color:#fcd34d;border-color:rgba(245,185,66,.4);background:rgba(245,185,66,.1)}
+.badge.likely-benign{color:#86efac;border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.09)}
+.badge.benign{color:#6ee7b7;border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.13)}
+.badge.conflicting{color:#c4b5fd;border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.1)}
+.badge.notprovided{color:var(--muted);border-color:var(--border-2);background:rgba(255,255,255,.02)}
+.na{color:var(--dim)}
+
+.lit-btn{ background:rgba(61,126,255,.1);border:1px solid rgba(61,126,255,.35);color:#93c5fd; border-radius:999px;padding:4px 12px;font-size:11px;white-space:nowrap; position:relative; z-index:10; display:inline-flex; align-items:center; gap:5px; }
+.lit-btn:hover{background:rgba(61,126,255,.2); color:#fff;}
+
+/* ---------- Pagination ---------- */
+.pagination{ display:flex;align-items:center;gap:10px;flex-wrap:wrap; padding:11px 14px;border-top:1px solid var(--border); font-size:11.5px;color:var(--muted); }
+.pagination .spacer{flex:1}
+.page-btn{ background:var(--panel-2);border:1px solid var(--border);color:var(--txt-2); min-width:28px;height:26px;border-radius:5px;padding:0 8px;font-size:11.5px; }
+.page-btn:hover:not(:disabled){border-color:rgba(61,126,255,.5);color:var(--blue)}
+.page-btn.active{background:rgba(61,126,255,.18);border-color:rgba(61,126,255,.55);color:var(--blue)}
+.page-btn:disabled{opacity:.35;cursor:default}
+.pagination select{ background:var(--panel-2);border:1px solid var(--border);color:var(--txt-2); border-radius:5px;padding:4px 7px;font-size:11.5px;cursor:pointer; }
+
+/* ---------- Drawer ---------- */
+.drawer{ position:fixed;top:0;right:0;bottom:0;width:min(560px,94vw);z-index:70; background:var(--panel);border-left:1px solid var(--border-2); box-shadow:-20px 0 60px rgba(0,0,0,.6); transform:translateX(102%);transition:transform .3s cubic-bezier(.22,.7,.3,1); display:flex;flex-direction:column; }
+.drawer.open{transform:translateX(0)}
+.drawer-head{ display:flex;align-items:flex-start;justify-content:space-between;gap:12px; padding:16px 18px;border-bottom:1px solid var(--border); }
+.drawer-head h3{font-size:14px;font-family:var(--mono);color:var(--blue);letter-spacing:.02em}
+.drawer-head .sub{font-size:11px;color:var(--muted);margin-top:3px;font-family:var(--mono)}
+.drawer-body{overflow:auto;padding:16px 18px 40px;flex:1}
+.sec{margin-bottom:20px}
+.sec h4{ font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--blue); margin-bottom:9px;padding-bottom:6px;border-bottom:1px solid var(--border);font-weight:600; }
+.kv{display:grid;grid-template-columns:148px 1fr;gap:6px 12px;font-size:12.5px}
+.kv dt{color:var(--muted);font-size:11.5px}
+.kv dd{margin:0;color:var(--txt);word-break:break-word}
+.btn.block{width:100%; justify-content:center; padding:12px; margin-top:20px; font-weight:600; font-size:13px; background:var(--blue); color:#fff; border:none; border-radius: 6px;}
+.btn.block:hover{background:var(--blue-hover);}
+
+/* ---------- Modal ---------- */
+.modal-backdrop{ position:fixed;inset:0;background:rgba(3,6,10,.78);backdrop-filter:blur(3px); z-index:90;display:none;align-items:center;justify-content:center;padding:22px; }
+.modal-backdrop.open{display:flex;}
+.modal{ background:var(--panel);border:1px solid var(--border-2);border-radius:var(--radius); max-width:880px;width:100%;max-height:86vh; display:flex;flex-direction:column;box-shadow:0 30px 70px rgba(0,0,0,.6); }
+.modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px; padding:14px 18px;border-bottom:1px solid var(--border)}
+.modal-head h3{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--txt-2);font-weight:600}
+.modal-body{overflow:auto;padding:18px}
+.art-item{ border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px; margin-bottom:8px;background:#0b1119; }
+.art-item .t{font-size:12.5px;color:var(--txt);margin-bottom:5px;line-height:1.45}
+.art-item .m{font-size:11px;color:var(--muted);font-family:var(--mono);display:flex;gap:12px;flex-wrap:wrap}
+
+footer{ max-width:1560px;margin:0 auto;padding:20px 22px 40px; font-size:10.5px;color:var(--dim);line-height:1.7; border-top:1px solid var(--border); }
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{ width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff; border-radius:50%;animation:spin .7s linear infinite;display:inline-block; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3c6 4 6 8 0 12s-6 8 0 12"/><path d="M17 3c-6 4-6 8 0 12s6 8 0 12"/><path d="M8.5 6h7M9.5 10h5M9.5 14h5M8.5 18h7"/></svg>
+    </div>
+    <div>
+      <h1>VARIANT FINDER</h1>
+      <p class="sub">Live Genomic Database Annotation</p>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <button class="chip-btn" id="clearCacheBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l16-2 1 6H5z"/><path d="M6 11l1.5 9h9L18 11"/></svg>
+      Cache
+    </button>
+  </div>
+</header>
+
+<section class="hero">
+  <h2>Genomic Variant &amp; Literature Explorer</h2>
+  <div class="search-row">
+    <div class="search-input">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="queryInput" type="text" autocomplete="off" spellcheck="false"
+             placeholder="Type a gene (e.g. GRIA1, NFATC2, BRCA1)..."
+             aria-label="Consulta genômica">
+      <button class="clear" id="clearQueryBtn" title="Limpar" aria-label="Limpar campo">✕</button>
+    </div>
+    <select id="assemblySelect" aria-label="Assembly">
+      <option value="GRCh38" selected>GRCh38</option>
+      <option value="GRCh37">GRCh37</option>
+    </select>
+    <button id="searchBtn">SEARCH</button>
+  </div>
+
+  <div class="examples-row">
+    <span class="type-chip">Type: <b id="detectedChip">—</b></span>
+    <span>Try examples:</span>
+    <button class="ex" data-example="GRIA1">GRIA1</button><span>,</span>
+    <button class="ex" data-example="NFATC2">NFATC2</button><span>,</span>
+    <button class="ex" data-example="ADAMTS17">ADAMTS17</button>
+  </div>
+  <div class="recent-row" id="recentSearches" aria-label="Buscas recentes"></div>
+</section>
+
+<div class="layout">
+  <aside class="filters" aria-label="Filtros">
+    <div class="filter-head">
+      <h3>Filters</h3>
+      <button class="clear" id="clearFiltersBtn">Clear</button>
+    </div>
+    
+    <div class="filter-section">
+      <div class="section-title">Data Quality</div>
+      <label class="check" title="Exibe apenas variantes com informações relevantes preenchidas (não oculta mais por herança)">
+        <input type="checkbox" id="fStrictComplete" data-flag="strictComplete"> 
+        <b style="color:var(--blue)">Complete Info Only</b>
+      </label>
+    </div>
+
+    <div class="filter-section">
+      <div class="section-title">Gene</div>
+      <input type="text" id="fGene" data-filter="gene" placeholder="e.g. ADAMTS17">
+    </div>
+
+    <div class="filter-section">
+      <div class="section-title">Chromosome</div>
+      <select id="fChromosome" data-filter="chromosome"><option value="">All</option></select>
+    </div>
+
+    <div class="filter-section">
+      <div class="section-title">Clinical significance</div>
+      <select id="fSignificance" data-filter="significance"><option value="">All</option></select>
+    </div>
+
+    <div class="filter-section">
+      <div class="section-title">rsID</div>
+      <input type="text" id="fRsid" data-filter="rsid" placeholder="e.g. rs72755233">
+    </div>
+
+    <div class="filter-section">
+      <div class="section-title">Condition</div>
+      <input type="text" id="fCondition" data-filter="condition" placeholder="disease name">
+    </div>
+
+    <div class="filter-section">
+      <div class="section-title">Inheritance</div>
+      <input type="text" id="fInheritance" data-filter="inheritance" placeholder="e.g. autosomal dominant">
+    </div>
+
+    <div class="filter-count" id="filterCount">0 variants</div>
+  </aside>
+
+  <div class="main-col">
+    <div class="pipeline" id="pipeline" role="list">
+      <div class="step" data-step="1" role="listitem"><div class="circle">1</div><div class="label">Identify</div></div>
+      <div class="step" data-step="2" role="listitem"><div class="circle">2</div><div class="label">Retrieve</div></div>
+      <div class="step" data-step="3" role="listitem"><div class="circle">3</div><div class="label">Annotate</div></div>
+      <div class="step" data-step="4" role="listitem"><div class="circle">4</div><div class="label">Finish</div></div>
+    </div>
+
+    <div class="cards" id="dashCards" aria-label="Resumo numérico"></div>
+
+    <section class="panel" id="tablePanel">
+      <div class="table-toolbar">
+        <div class="search-mini">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <input type="text" id="tableSearch" placeholder="Filter table results..." aria-label="Buscar nos resultados">
+        </div>
+        <span class="count" id="tableCount">0 of 0</span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="variants" id="variantTable">
+          <thead>
+            <tr>
+              <th class="sortable" data-sort="gene">Gene <span class="arrow"></span></th>
+              <th class="sortable" data-sort="variant">Variant</th>
+              <th class="sortable" data-sort="chromosome">Chr</th>
+              <th class="sortable" data-sort="position">Position</th>
+              <th>Ref</th>
+              <th>Alt</th>
+              <th class="sortable" data-sort="rsid">rsID</th>
+              <th>Inheritance</th>
+              <th class="sortable" data-sort="significance">Significance <span class="arrow"></span></th>
+              <th>Condition</th>
+              <th>Article</th>
+            </tr>
+          </thead>
+          <tbody id="variantTbody"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="pagination"></div>
+    </section>
+  </div>
+</div>
+
+<footer>
+  <p><b>Variant annotations are aggregated from real public databases via APIs (MyVariant.info, Ensembl, NCBI) em tempo real.</b></p>
+</footer>
+
+<aside class="drawer" id="drawer" role="dialog" aria-modal="false" aria-hidden="true">
+  <div class="drawer-head">
+    <div>
+      <h3 id="drawerTitle">—</h3>
+      <div class="sub" id="drawerSub"></div>
+    </div>
+    <button class="icon-btn" id="drawerClose" aria-label="Fechar painel">✕</button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+</aside>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <h3 id="modalTitle">—</h3>
+      <button class="icon-btn" id="modalClose" aria-label="Fechar">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div id="toast-container" style="position:fixed; bottom:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:10px;"></div>
+
+<script>
+"use strict";
+
+const API_CONFIG = {
+  ensembl:  { enabled: true, base38: "https://rest.ensembl.org", base37: "https://grch37.rest.ensembl.org" },
+  myvariant:{ enabled: true, base: "https://myvariant.info/v1" },
+  clinvar:  { enabled: true, base: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils" },
+  dbsnp:    { enabled: true, base: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils" },
+  pubmed:   { enabled: true, base: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils" }
+};
+const REQUEST_TIMEOUT = 18000;
+const MAX_GENE_VARIANTS = 1000;
+const CACHE_KEY = "variantFinderCache";
+const HISTORY_KEY = "variantFinderHistory";
+const CACHE_TTL_MS = 1000 * 60 * 60 * 6;
+
+const MV_FIELDS = [
+  "_id","_score","dbsnp.rsid",
+  "clinvar.variant_id","clinvar.gene.symbol",
+  "clinvar.rcv.clinical_significance","clinvar.rcv.conditions.name",
+  "clinvar.rcv.inheritance","clinvar.rcv.review_status",
+  "dbnsfp.genename","dbnsfp.hgvsc","dbnsfp.hgvsp",
+  "snpeff.ann.hgvsc","snpeff.ann.hgvsp","snpeff.ann.consequence",
+  "snpeff.ann.impact","snpeff.ann.feature_id","snpeff.ann.genename",
+  "gnomad_exome.af.af","gnomad_genome.af.af"
+];
+
+const STATE = {
+  query: "", queryType: "auto", detectedType: null, assembly: "GRCh38",
+  gene: null, geneInfo: null, variants: [], filtered: [], geneLiterature: [],
+  step: 0, sort: { key: "position", dir: "asc" },
+  page: 1, pageSize: 25, quickSearch: "",
+  filters: {
+    gene: "", chromosome: "", assembly: "", ref: "", alt: "", rsid: "",
+    significance: "", inheritance: "", condition: "", consequence: "",
+    hasLiterature: false, hasRsid: false, hasClinvar: false, hasGnomad: false,
+    strictComplete: false
+  },
+  selectedKey: null
+};
+
+const $  = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const arr = v => v==null ? [] : Array.isArray(v) ? v : [v];
+const firstOf = v => arr(v).find(x => x!=null && x!=="") ?? null;
+const uniq = a => [...new Set(arr(a).filter(x => x!=null && x!==""))];
+const fmtNum = n => (n==null || Number.isNaN(n)) ? "—" : Number(n).toLocaleString("pt-BR");
+function debounce(fn, ms=250){ let t; return (...a)=>{clearTimeout(t); t=setTimeout(()=>fn(...a), ms);}; }
+
+async function fetchJSON(url, options={}, timeout=REQUEST_TIMEOUT){
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeout);
+  try{
+    const res = await fetch(url, {...options, signal:ctrl.signal, headers:{"Accept":"application/json"}});
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } finally { clearTimeout(timer); }
+}
+function ensemblBase(assembly){ return assembly === "GRCh37" ? API_CONFIG.ensembl.base37 : API_CONFIG.ensembl.base38; }
+
+const Sources = {
+  ensembl: {
+    async searchGene(gene, assembly="GRCh38"){
+      const url = `${ensemblBase(assembly)}/lookup/symbol/homo_sapiens/${encodeURIComponent(gene)}?content-type=application/json;expand=0`;
+      const d = await fetchJSON(url);
+      if(!d?.id) throw new Error("Gene not found");
+      return { id:d.id, symbol:d.display_name||gene, description:d.description||null,
+        chromosome:String(d.seq_region_name), start:d.start, end:d.end, assembly };
+    },
+    async getVariant(rsid, assembly="GRCh38"){
+      return fetchJSON(`${ensemblBase(assembly)}/variation/human/${encodeURIComponent(rsid)}?content-type=application/json`);
+    }
+  },
+  myvariant: {
+    async query(q, {assembly="GRCh38", size=50}={}){
+      const asm = assembly === "GRCh37" ? "hg19" : "hg38";
+      const url = `${API_CONFIG.myvariant.base}/query?q=${encodeURIComponent(q)}&assembly=${asm}&size=${size}&fields=${encodeURIComponent(MV_FIELDS.join(","))}`;
+      const d = await fetchJSON(url);
+      return Array.isArray(d) ? d : (d.hits || []);
+    },
+    async searchGene(gene, assembly="GRCh38", size=MAX_GENE_VARIANTS){
+      const q = `(clinvar.gene.symbol:"${gene}" OR snpeff.ann.genename:"${gene}" OR dbnsfp.genename:"${gene}") AND _exists_:dbsnp.rsid`;
+      return this.query(q, {assembly, size});
+    }
+  },
+  clinvar: {
+    async searchVariant(rsid){
+      const sUrl = `${API_CONFIG.clinvar.base}/esearch.fcgi?db=clinvar&retmode=json&retmax=5&term=${encodeURIComponent(rsid)}&tool=VariantFinder&email=vf@example.org`;
+      const s = await fetchJSON(sUrl);
+      const ids = s?.esearchresult?.idlist || [];
+      if(!ids.length) return [];
+      const sumUrl = `${API_CONFIG.clinvar.base}/esummary.fcgi?db=clinvar&retmode=json&id=${ids.join(",")}&tool=VariantFinder&email=vf@example.org`;
+      const sum = await fetchJSON(sumUrl);
+      return ids.map(id => parseClinVar(sum?.result?.[id])).filter(Boolean);
+    }
+  },
+  pubmed: {
+    async search(term, retmax=5){
+      const sUrl = `${API_CONFIG.pubmed.base}/esearch.fcgi?db=pubmed&retmode=json&retmax=${retmax}&sort=relevance&term=${encodeURIComponent(term)}&tool=VariantFinder&email=vf@example.org`;
+      const s = await fetchJSON(sUrl);
+      const ids = s?.esearchresult?.idlist || [];
+      if(!ids.length) return [];
+      const sumUrl = `${API_CONFIG.pubmed.base}/esummary.fcgi?db=pubmed&retmode=json&id=${ids.join(",")}&tool=VariantFinder&email=vf@example.org`;
+      const sum = await fetchJSON(sumUrl);
+      return ids.map(id => parsePubmed(sum?.result?.[id])).filter(Boolean);
+    }
+  }
+};
+
+function parseClinVar(doc){
+  if(!doc) return null;
+  const gc = doc.germline_classification || {};
+  const cs = doc.clinical_significance || {};
+  return {
+    uid: doc.uid, accession: doc.accession, title: doc.title,
+    significance: gc.description || cs.description || null,
+    reviewStatus: gc.review_status || cs.review_status || null,
+    conditions: uniq(arr(doc.conditions).map(c => c?.name)),
+    gene: doc.gene_sort || arr(doc.genes).map(g=>g?.symbol).filter(Boolean)[0] || null
+  };
+}
+function parsePubmed(doc){
+  if(!doc?.uid) return null;
+  const authors = arr(doc.authors).map(a => a?.name).filter(Boolean);
+  const ids = arr(doc.articleids);
+  const doi = ids.find(a => a?.idtype === "doi")?.value || null;
+  const ym = /\b(19|20)\d{2}\b/.exec(doc.pubdate || doc.epubdate || "");
+  return { pmid: String(doc.uid), title: doc.title || null, authors,
+    firstAuthor: authors.length ? authors[0].split(" ")[0] : null,
+    journal: doc.fulljournalname || doc.source || null,
+    year: ym ? ym[0] : null, doi };
+}
+
+let UID_COUNTER = 0;
+function createVariant(){
+  return {
+    _uid: "v" + (++UID_COUNTER),
+    gene:null, variant:null, chromosome:null, position:null, ref:null, alt:[],
+    rsid:null, caid:null, clinvarId:null, assembly: STATE.assembly,
+    hgvs:{genomic:null,coding:null,protein:null},
+    clinical:{significance:null,condition:null,inheritance:[],reviewStatus:null},
+    population:{gnomAD_AF:null},
+    consequence:{transcript:null,consequence:null,impact:null},
+    literature:[],
+    sources:{clinvar:false,dbsnp:false,ensembl:false,myvariant:false,clingen:false,gnomad:false,pubmed:false}
+  };
+}
+function buildVariantLabel(ref, alts){
+  const a = arr(alts).filter(Boolean);
+  if(!ref && !a.length) return null;
+  if(!a.length) return ref || null;
+  return `${ref || "?"}>${a.join(",")}`;
+}
+
+function normalizeMyVariantHit(hit, geneFallback){
+  const v = createVariant();
+  v.sources.myvariant = true;
+  const id = String(hit._id || "");
+  const m = /^(?:chr)?([0-9XYM]+):g\.(\d+)([ACGTN]+)>([ACGTN]+)$/i.exec(id);
+  if(m){ v.chromosome = m[1]; v.position = parseInt(m[2],10); v.ref = m[3].toUpperCase();
+    v.alt = m[4].toUpperCase().split(",").filter(Boolean); }
+  const rs = firstOf(hit.dbsnp?.rsid);
+  if(rs){ v.rsid = rs; v.sources.dbsnp = true; }
+  const ann = arr(hit.snpeff?.ann);
+  const g = firstOf(hit.clinvar?.gene?.symbol) || firstOf(hit.dbnsfp?.genename) || firstOf(ann.map(a => a?.genename || a?.gene_name)) || geneFallback;
+  if(g) v.gene = g;
+  
+  const rcvs = arr(hit.clinvar?.rcv);
+  if(rcvs.length){
+    v.sources.clinvar = true;
+    v.clinvarId = firstOf(hit.clinvar?.variant_id);
+    const sigs = uniq(rcvs.flatMap(r => arr(r?.clinical_significance)));
+    v.clinical.significance = sigs.length ? (sigs.length>1 ? "Conflicting interpretations of pathogenicity" : sigs[0]) : null;
+    const conds = uniq(rcvs.flatMap(r => arr(r?.conditions).map(c=>c?.name)));
+    v.clinical.condition = conds.length ? conds.join("; ") : null;
+    v.clinical.inheritance = uniq(rcvs.flatMap(r => arr(r?.inheritance)));
+    v.clinical.reviewStatus = firstOf(rcvs.map(r => r?.review_status));
+  }
+  
+  if(ann.length){
+    const a = ann[0];
+    v.consequence.consequence = firstOf(a.consequence);
+    v.consequence.impact = firstOf(a.impact);
+    v.consequence.transcript = firstOf(a.feature_id);
+  }
+  v.hgvs.coding = firstOf(hit.dbnsfp?.hgvsc) || firstOf(ann.map(a=>a?.hgvsc));
+  v.hgvs.protein = firstOf(hit.dbnsfp?.hgvsp) || firstOf(ann.map(a=>a?.hgvsp));
+  v.variant = buildVariantLabel(v.ref, v.alt);
+  return v;
+}
+
+function variantKey(v){
+  if(v.rsid) return "rsid:" + String(v.rsid).toLowerCase();
+  if(v.caid) return "caid:" + v.caid;
+  if(v.hgvs.genomic) return "hgvs:" + v.hgvs.genomic;
+  if(v.chromosome && v.position && v.ref && v.alt?.length)
+    return `loc:${v.chromosome}:${v.position}:${v.ref}:${v.alt.join(",")}`;
+  return "uid:" + v._uid;
+}
+function deduplicateVariants(list){
+  const map = new Map();
+  for(const v of list){
+    const k = variantKey(v);
+    if(map.has(k)) {
+        const out = map.get(k);
+        if(!out.gene && v.gene) out.gene = v.gene;
+        if(!out.rsid && v.rsid) out.rsid = v.rsid;
+        if(!out.clinical.significance && v.clinical.significance) out.clinical.significance = v.clinical.significance;
+        if(!out.clinical.condition && v.clinical.condition) out.clinical.condition = v.clinical.condition;
+        out.clinical.inheritance = uniq([...out.clinical.inheritance, ...v.clinical.inheritance]);
+        out.literature = [...out.literature, ...v.literature];
+    } else {
+        map.set(k, v);
+    }
+  }
+  return [...map.values()];
+}
+
+const Cache = {
+  read(){ try{ return JSON.parse(localStorage.getItem(CACHE_KEY) || "{}"); }catch{ return {}; } },
+  write(o){ try{ localStorage.setItem(CACHE_KEY, JSON.stringify(o)); }catch{} },
+  key(g,a){ return `${String(g).toUpperCase()}::${a}`; },
+  get(g,a){
+    const all = this.read(); const e = all[this.key(g,a)];
+    if(!e || (Date.now() - e.timestamp > CACHE_TTL_MS)) return null;
+    return e;
+  },
+  set(g,a,payload){
+    const all = this.read();
+    all[this.key(g,a)] = {timestamp:Date.now(), ...payload};
+    try { this.write(all); } catch(e){}
+  },
+  clear(){ try{ localStorage.removeItem(CACHE_KEY); }catch{} }
+};
+
+const History = {
+  read(){ try{ return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); }catch{ return []; } },
+  push(q){
+    if(!q) return;
+    let h = this.read().filter(x => x.toLowerCase() !== q.toLowerCase());
+    h.unshift(q); h = h.slice(0, 8);
+    try{ localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); }catch{}
+    renderHistory();
+  },
+  clear(){ try{ localStorage.removeItem(HISTORY_KEY); }catch{} renderHistory(); }
+};
+
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  const bgClass = type === 'error' ? 'bg-red-900/90 border-red-500' : type === 'success' ? 'bg-green-900/90 border-green-500' : 'bg-dark-800 border-dark-600';
+  t.className = `${bgClass} border text-white px-4 py-3 rounded-lg shadow-lg text-sm flex items-center gap-3`;
+  t.innerHTML = `<span>${esc(message)}</span>`;
+  container.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+function setStep(n){
+  STATE.step = n;
+  $$("#pipeline .step").forEach(el => {
+    const num = Number(el.dataset.step);
+    el.classList.remove("active","done","error");
+    if(num < n) el.classList.add("done");
+    else if(num === n) el.classList.add("active");
+  });
+}
+
+function renderDashboard(){
+  const wrap = $("#dashCards");
+  if(!wrap) return;
+  wrap.textContent = "";
+  const v = STATE.filtered;
+  const patho = v.filter(x => /pathogenic/i.test(x.clinical.significance||"") && !/likely benign|benign/i.test(x.clinical.significance||"")).length;
+  const total = v.length;
+  const withLit = v.filter(x => x.literature?.length).length;
+  const withRsid = v.filter(x => x.rsid && String(x.rsid).startsWith('rs')).length;
+
+  const iconStyle = 'style="width:22px;height:22px;color:var(--dim);flex-shrink:0;"';
+  const cards = [
+    { label: "Displayed", val: total, icon: `<svg ${iconStyle} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>` },
+    { label: "Pathogenic", val: patho, icon: `<svg ${iconStyle} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>` },
+    { label: "Literature", val: withLit, icon: `<svg ${iconStyle} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>` },
+    { label: "Has rsID", val: withRsid, icon: `<svg ${iconStyle} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4L13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 2.8 12V4a1 1 0 0 1 1-1h8a2 2 0 0 1 1.4.6l7.4 7.4a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg>` }
+  ];
+  cards.forEach(c => {
+    const el = document.createElement("div"); el.className = "stat-card";
+    const head = document.createElement("div"); head.className = "head";
+    head.innerHTML = `<span>${c.label}</span>${c.icon}`;
+    const val = document.createElement("div"); val.className = "val"; val.textContent = fmtNum(c.val);
+    el.append(head, val); wrap.appendChild(el);
+  });
+}
+
+function readFilters(){
+  STATE.filters.gene = $("#fGene")?.value.trim() || "";
+  STATE.filters.chromosome = $("#fChromosome")?.value || "";
+  STATE.filters.assembly = $("#fAssembly")?.value || "GRCh38";
+  STATE.filters.rsid = $("#fRsid")?.value.trim() || "";
+  STATE.filters.significance = $("#fSignificance")?.value || "";
+  STATE.filters.inheritance = $("#fInheritance")?.value.trim() || "";
+  STATE.filters.condition = $("#fCondition")?.value.trim() || "";
+  STATE.filters.hasLiterature = $("#fHasLiterature")?.checked || false;
+  STATE.filters.hasRsid = $("#fHasRsid")?.checked || false;
+  STATE.filters.strictComplete = $("#fStrictComplete")?.checked || false;
+}
+
+function applyFilters(){
+  readFilters();
+  const f = STATE.filters;
+  const q = STATE.quickSearch.trim().toLowerCase();
+
+  STATE.filtered = STATE.variants.filter(v => {
+    
+    if (f.strictComplete) {
+      const isComplete = (
+        v.gene && v.gene !== "—" &&
+        v.variant && v.variant !== "—" &&
+        v.chromosome && v.position != null &&
+        v.ref && v.ref !== "-" && v.ref !== "?" &&
+        v.alt && v.alt.length > 0 && v.alt[0] !== "-" && v.alt[0] !== "?" &&
+        v.rsid && String(v.rsid).startsWith("rs") &&
+        v.clinical.significance && v.clinical.significance !== "Not provided"
+      );
+      if (!isComplete) return false;
+    }
+
+    if(f.gene && !includesCI(v.gene, f.gene)) return false;
+    if(f.chromosome && String(v.chromosome) !== String(f.chromosome)) return false;
+    if(f.assembly && v.assembly !== f.assembly) return false;
+    if(f.rsid && !includesCI(v.rsid, f.rsid)) return false;
+    if(f.significance && v.clinical.significance !== f.significance) return false;
+    if(f.inheritance && !arr(v.clinical.inheritance).some(i => includesCI(i, f.inheritance))) return false;
+    if(f.condition && !includesCI(v.clinical.condition, f.condition)) return false;
+    if(f.hasLiterature && !(v.literature?.length)) return false;
+    if(f.hasRsid && !v.rsid) return false;
+    
+    if(q){
+      const hay = [v.gene, v.variant, v.rsid, v.chromosome, v.position, v.clinical.condition, v.clinical.significance,
+        (v.literature||[]).map(a => `${a.firstAuthor} ${a.year} ${a.title}`).join(" ")
+      ].join(" ").toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  sortVariants();
+  STATE.page = 1;
+  renderTable();
+  renderFilterCount();
+  renderDashboard();
+}
+
+function renderFilterCount(){
+  const el = $("#filterCount");
+  if(!el) return;
+  el.textContent = "";
+  const a = document.createElement("span"); a.textContent = `${fmtNum(STATE.variants.length)} total`;
+  const b = document.createElement("b"); b.textContent = ` • ${fmtNum(STATE.filtered.length)} displayed`;
+  el.append(a, b);
+}
+
+function populateFilterOptions(){
+  const chroms = uniq(STATE.variants.map(v => v.chromosome)).sort();
+  const sc = $("#fChromosome"); 
+  if(sc){ 
+      const curC = sc.value; sc.textContent = ""; 
+      sc.insertAdjacentHTML('beforeend', '<option value="">All</option>'); 
+      chroms.forEach(c => sc.insertAdjacentHTML('beforeend', `<option value="${c}">chr${c}</option>`)); 
+      sc.value = chroms.includes(curC) ? curC : ""; 
+  }
+
+  const sigs = uniq(STATE.variants.map(v => v.clinical.significance).filter(Boolean)).sort();
+  const ss = $("#fSignificance"); 
+  if(ss){ 
+      const curS = ss.value; ss.textContent = ""; 
+      ss.insertAdjacentHTML('beforeend', '<option value="">All</option>'); 
+      sigs.forEach(s => ss.insertAdjacentHTML('beforeend', `<option value="${s}">${s}</option>`)); 
+      ss.value = sigs.includes(curS) ? curS : ""; 
+  }
+}
+
+function clearFilters(){
+  ["#fGene","#fRsid","#fInheritance","#fCondition", "#fChromosome","#fAssembly","#fSignificance"].forEach(s => { if($(s))$(s).value = ""; });
+  ["#fHasLiterature","#fHasRsid","#fStrictComplete"].forEach(s => { if($(s))$(s).checked = false; });
+  if($("#tableSearch")) $("#tableSearch").value = "";
+  STATE.quickSearch = "";
+  applyFilters();
+}
+
+function significanceClass(sig){
+  const s = String(sig || "").toLowerCase();
+  if(!s || s==="not provided") return "notprovided";
+  if(s.includes("conflicting")) return "conflicting";
+  if(s.includes("likely pathogenic")) return "likely-pathogenic";
+  if(s.includes("pathogenic")) return "pathogenic";
+  if(s.includes("likely benign")) return "likely-benign";
+  if(s.includes("benign")) return "benign";
+  if(s.includes("uncertain") || s.includes("vus")) return "vus";
+  return "notprovided";
+}
+function significanceIcon(sig){
+  const s = String(sig || "").toLowerCase();
+  if(s.includes("conflicting")) return "◈";
+  if(s.includes("likely pathogenic") || s.includes("pathogenic")) return "▲";
+  if(s.includes("likely benign") || s.includes("benign")) return "▼";
+  if(s.includes("uncertain") || s.includes("vus")) return "?";
+  return "·";
+}
+
+function sortVariants(){
+  const { key, dir } = STATE.sort;
+  const mul = dir === "asc" ? 1 : -1;
+  STATE.filtered.sort((a,b) => {
+    let va, vb;
+    switch(key){
+      case "gene": va = a.gene||""; vb = b.gene||""; break;
+      case "variant": va = a.variant||""; vb = b.variant||""; break;
+      case "chromosome": va = a.chromosome||""; vb = b.chromosome||""; break;
+      case "position": va = a.position ?? Infinity; vb = b.position ?? Infinity; break;
+      case "rsid": va = a.rsid||"zzz"; vb = b.rsid||"zzz"; break;
+      case "significance": va = a.clinical.significance||"zzz"; vb = b.clinical.significance||"zzz"; break;
+      default: va = a.position ?? Infinity; vb = b.position ?? Infinity;
+    }
+    if(typeof va === "string") return va.localeCompare(vb) * mul;
+    return (va - vb) * mul;
+  });
+}
+
+function getPageRows(){
+  const start = (STATE.page - 1) * STATE.pageSize;
+  return STATE.filtered.slice(start, start + STATE.pageSize);
+}
+
+function renderTable(){
+  const tbody = $("#variantTbody");
+  if(!tbody) return;
+  tbody.textContent = "";
+  
+  if($("#tableCount")) $("#tableCount").textContent = `${fmtNum(STATE.filtered.length)} of ${fmtNum(STATE.variants.length)}`;
+
+  if(!STATE.variants.length){
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="10"><div class="empty-state">No results. Perform a search.</div></td></tr>`;
+    renderPagination(); return;
+  }
+  if(!STATE.filtered.length){
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="10"><div class="empty-state">No variants match current strict filters. Uncheck 'Complete Info Only' to see more.</div></td></tr>`;
+    renderPagination(); return;
+  }
+
+  const frag = document.createDocumentFragment();
+  getPageRows().forEach(v => {
+    const tr = document.createElement("tr");
+    if(STATE.selectedKey === variantKey(v)) tr.classList.add("selected");
+    
+    // RSID Link (direto para dbSNP) - HTML Link Puro
+    let rsidHTML = '<span class="na">—</span>';
+    if (v.rsid && String(v.rsid).startsWith('rs')) {
+      rsidHTML = `<a href="https://www.ncbi.nlm.nih.gov/snp/${encodeURIComponent(v.rsid)}" target="_blank" class="rsid-link">${v.rsid} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg></a>`;
+    } else if (v.rsid) {
+      rsidHTML = `<span class="text-gray-400 text-[10px]">${v.rsid}</span>`;
+    }
+
+    // Article Link
+    let litHTML = '';
+    const numArts = v.literature?.length || 0;
+    if(numArts > 0){
+      litHTML = `<button class="lit-btn" data-action="lit">${numArts} article${numArts > 1 ? 's' : ''}</button>`;
+    } else {
+      const term = v.rsid || v.gene;
+      litHTML = `<a href="https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(term)}" target="_blank" class="lit-btn" style="text-decoration:none;">Search PubMed</a>`;
+    }
+
+    // Variante simples (sem tooltips adicionais atrapalhando o visual)
+    const variantStr = v.variant ? esc(v.variant) : '<span class="na">—</span>';
+
+    tr.innerHTML = `
+      <td class="mono">${esc(v.gene || "—")}</td>
+      <td class="mono" style="color:var(--blue); font-weight:600;">${variantStr}</td>
+      <td class="mono">${v.chromosome || "—"}</td>
+      <td class="mono">${v.position != null ? fmtNum(v.position) : "—"}</td>
+      <td class="mono">${v.ref || "?"}</td>
+      <td class="mono">${v.alt?.join(",") || "?"}</td>
+      <td class="mono">${rsidHTML}</td>
+      <td style="font-size: 12.5px; color: var(--txt-2);">${esc(v.clinical.inheritance.join(', ') || '—')}</td>
+      <td><span class="badge ${significanceClass(v.clinical.significance)}">${significanceIcon(v.clinical.significance)} ${esc(v.clinical.significance || 'Not provided')}</span></td>
+      <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12.5px;" title="${esc(v.clinical.condition)}">${esc(v.clinical.condition || '—')}</td>
+      <td style="text-align:center;">${litHTML}</td>
+    `;
+
+    tr.addEventListener("click", (e) => {
+      // Ignorar cliques que já são tratados em links HTML normais
+      if(e.target.closest('a')) return; 
+      
+      const btn = e.target.closest('button');
+      if (btn && btn.dataset.action === 'lit') { openLiteratureModal(v); return; }
+      
+      openDrawer(v);
+    });
+
+    frag.appendChild(tr);
+  });
+  tbody.appendChild(frag);
+
+  $$("#variantTable thead th").forEach(th => {
+    const a = th.querySelector(".arrow"); if(a) a.remove();
+    if(th.dataset.sort === STATE.sort.key){
+      const s = document.createElement("span"); s.className = "arrow"; s.textContent = STATE.sort.dir === "asc" ? "▲" : "▼";
+      th.appendChild(s);
+    }
+  });
+
+  renderPagination();
+}
+
+function renderPagination(){
+  const el = $("#pagination");
+  if(!el) return;
+  el.textContent = "";
+  const total = STATE.filtered.length;
+  const pages = Math.max(1, Math.ceil(total / STATE.pageSize));
+  if(pages <= 1) return;
+  
+  const mk = (label, page, opts={}) => {
+    const b = document.createElement("button");
+    b.className = "page-btn" + (opts.active ? " active" : "");
+    b.type = "button"; b.textContent = label;
+    if(opts.disabled) b.disabled = true;
+    b.addEventListener("click", () => { STATE.page = page; renderTable(); $("#tablePanel").scrollIntoView({behavior:"smooth", block:"start"}); });
+    return b;
+  };
+  el.appendChild(mk("‹", Math.max(1, STATE.page-1), {disabled: STATE.page === 1}));
+  el.appendChild(mk("1", 1, {active: STATE.page === 1}));
+  if(STATE.page > 3) { const d=document.createElement("span"); d.textContent="…"; el.appendChild(d); }
+  for(let p = Math.max(2, STATE.page-1); p <= Math.min(pages-1, STATE.page+1); p++) el.appendChild(mk(String(p), p, {active: p === STATE.page}));
+  if(STATE.page < pages - 2) { const d=document.createElement("span"); d.textContent="…"; el.appendChild(d); }
+  if(pages > 1) el.appendChild(mk(String(pages), pages, {active: STATE.page === pages}));
+  el.appendChild(mk("›", Math.min(pages, STATE.page+1), {disabled: STATE.page === pages}));
+}
+
+function openDrawer(v){
+  STATE.selectedKey = variantKey(v);
+  const d = $("#drawer");
+  d.classList.add("open"); d.setAttribute("aria-hidden","false");
+  $("#drawerTitle").textContent = `${v.gene||"—"} · ${v.variant||"—"}`;
+  $("#drawerSub").textContent = `${v.chromosome ? "chr"+v.chromosome : "—"}:${v.position!=null ? fmtNum(v.position) : "—"} · ${v.assembly}`;
+
+  const body = $("#drawerBody");
+  body.textContent = "";
+
+  const section = (title, builder) => {
+    const s = document.createElement("div"); s.className = "sec";
+    const h = document.createElement("h4"); h.textContent = title;
+    s.appendChild(h); builder(s); body.appendChild(s);
+  };
+  const kv = (parent, pairs) => {
+    const dl = document.createElement("dl"); dl.className = "kv";
+    pairs.forEach(([k,val]) => {
+      const dt = document.createElement("dt"); dt.textContent = k;
+      const dd = document.createElement("dd");
+      if(val instanceof Node) dd.appendChild(val);
+      else {
+        dd.textContent = (val==null || val==="") ? "Not available" : String(val);
+        if(dd.textContent === "Not available") dd.classList.add("na");
+      }
+      dl.append(dt, dd);
+    });
+    parent.appendChild(dl);
+  };
+
+  section("Genomic information", s => {
+    kv(s, [
+      ["Gene", v.gene], ["Chromosome", v.chromosome],
+      ["Position", v.position!=null ? fmtNum(v.position) : null],
+      ["Assembly", v.assembly], ["REF", v.ref],
+      ["ALT", v.alt?.length ? v.alt.join(", ") : null],
+      ["rsID", v.rsid], ["HGVS genomic", v.hgvs.genomic],
+      ["HGVS coding", v.hgvs.coding], ["HGVS protein", v.hgvs.protein]
+    ]);
+  });
+  
+  section("Clinical annotation", s => {
+    kv(s, [["Clinical significance", v.clinical.significance],
+           ["Condition", v.clinical.condition]]);
+    const inhWrap = document.createElement("div");
+    inhWrap.style.marginTop = "10px";
+    const l = document.createElement("div");
+    l.style.cssText = "font-size:11px;color:var(--muted);margin-bottom:6px";
+    l.textContent = "Inheritance";
+    inhWrap.appendChild(l);
+    const inh = v.clinical.inheritance || [];
+    if(!inh.length){
+      inhWrap.innerHTML += `<div class="na" style="font-size:12.5px;">Not available</div>`;
+    } else {
+      inh.forEach(i => inhWrap.innerHTML += `<div style="font-size:12.5px;margin-top:4px;">${esc(i)}</div>`);
+    }
+    s.appendChild(inhWrap);
+  });
+  
+  const cgLink = `https://erepo.clinicalgenome.org/evrepo/ui/classifications?search=${encodeURIComponent(v.gene || STATE.query)}`;
+  section("Identifiers", s => {
+    const rsNode = v.rsid ? (() => { const a = document.createElement("a");
+      a.textContent = v.rsid; a.href = `https://www.ncbi.nlm.nih.gov/snp/${encodeURIComponent(v.rsid)}`;
+      a.target = "_blank"; a.rel = "noopener noreferrer"; return a; })() : null;
+    const cgNode = (() => { const a = document.createElement("a");
+      a.textContent = "Search on ClinGen"; a.href = cgLink; a.target = "_blank"; return a; })();
+    kv(s, [["rsID", rsNode], ["ClinGen", cgNode]]);
+  });
+
+  const btnCloseBottom = document.createElement("button");
+  btnCloseBottom.className = "btn block";
+  btnCloseBottom.textContent = "Close Details";
+  btnCloseBottom.addEventListener("click", closeDrawer);
+  body.appendChild(btnCloseBottom);
+
+  $$("#variantTbody tr").forEach(tr => {
+    if(tr.dataset.key === STATE.selectedKey) tr.classList.add("selected");
+    else tr.classList.remove("selected");
+  });
+}
+
+function closeDrawer(){
+  $("#drawer").classList.remove("open");
+  $("#drawer").setAttribute("aria-hidden","true");   STATE.selectedKey = null;   $$("#variantTbody tr").forEach(tr => tr.classList.remove("selected"));
+}
+
+function openModal(title, bodyNode){
+  $("#modalTitle").textContent = title;
+  const body = $("#modalBody"); body.textContent = "";
+  body.appendChild(bodyNode);
+  $("#modalBackdrop").classList.add("open");
+}
+function closeModal(){ $("#modalBackdrop").classList.remove("open"); }
+function openLiteratureModal(v){
+  const wrap = document.createElement("div");
+  const head = document.createElement("div");
+  head.style.cssText = "font-size:12.5px;color:var(--muted);margin-bottom:14px";
+  head.textContent = `${v.gene||"—"} · ${v.variant||"—"} · ${v.rsid||"sem rsID"}`;
+  wrap.appendChild(head);
+  if(!v.literature?.length){
+    wrap.innerHTML += `<div class="na">Nenhum artigo associado a esta variante foi recuperado automaticamente.</div>`;
+  } else {
+    v.literature.forEach(a => {
+      const el = document.createElement("div"); el.className = "art-item";
+      el.innerHTML = `<div class="t">${esc(a.title)}</div><div class="m"><span>${esc(a.firstAuthor)} et al. ${esc(a.year)}</span><span>${esc(a.journal)}</span></div>`;
+      if(a.pmid) el.innerHTML += `<div class="m" style="margin-top:6px"><a href="https://pubmed.ncbi.nlm.nih.gov/${esc(a.pmid)}/" target="_blank">PMID: ${a.pmid}</a></div>`;
+      wrap.appendChild(el);
+    });
+  }
+  openModal("LITERATURE", wrap);
+}
+
+function detectQueryType(q){
+  const s = q.trim();
+  if(!s) return null;
+  if(/^rs\d+$/i.test(s)) return "rsid";
+  return "gene";
+}
+
+async function performSearch(rawQuery){
+  const q = String(rawQuery || "").trim();
+  if(!q) return;
+  STATE.query = q;
+  const type = detectQueryType(q);
+  
+  STATE.variants = []; STATE.filtered = [];
+  closeDrawer();
+  setStep(0);
+  
+  $("#searchBtn").disabled = true;
+  $("#searchBtn").innerHTML = '<span class="spinner"></span> SEARCHING';
+
+  try{
+    setStep(1);
+    const cached = Cache.get(q, STATE.assembly);
+    if(cached && cached.variants?.length){
+      STATE.gene = cached.gene || q;
+      STATE.variants = cached.variants;
+      showToast("Resultados carregados da cache", "success");
+    } else {
+      const [ens, mv] = await Promise.allSettled([
+        Sources.ensembl.searchGene(q, STATE.assembly),
+        Sources.myvariant.searchGene(q, STATE.assembly, MAX_GENE_VARIANTS)
+      ]);
+      const ensVal = ens.status === 'fulfilled' ? ens.value : null;
+      STATE.gene = ensVal?.symbol || q;
+      
+      setStep(2);
+      const raw = [];
+      const hits = (mv.status === 'fulfilled' ? mv.value : []) || [];
+      hits.forEach(h => {
+        const v = normalizeMyVariantHit(h, STATE.gene);
+        if(v.chromosome || v.rsid) raw.push(v);
+      });
+      raw.forEach(v => { if(!v.gene) v.gene = STATE.gene; });
+      const deduped = deduplicateVariants(raw);
+      STATE.variants = deduped;
+
+      setStep(3);
+      if (deduped.length > 0) {
+        Cache.set(q, STATE.assembly, { gene: STATE.gene, variants: STATE.variants });
+      } else {
+        showToast(`Nenhuma variante encontrada para o termo "${q}".`, "warning");
+      }
+    }
+    
+    setStep(4);
+    applyFilters();
+    History.push(q);
+    
+  } catch(err) {
+    console.error(err);
+    showToast("Erro durante a busca.", "error");
+  } finally {
+    $("#searchBtn").disabled = false;
+    $("#searchBtn").textContent = "SEARCH";
+    populateFilterOptions();
+  }
+}
+
+function initEvents(){
+  $("#searchBtn").addEventListener("click", () => performSearch($("#queryInput").value));
+  $("#queryInput").addEventListener("keydown", e => { if(e.key === "Enter") performSearch($("#queryInput").value); });
+  $("#clearQueryBtn").addEventListener("click", () => { $("#queryInput").value = ""; $("#queryInput").focus(); });      $$(".examples-row .ex").forEach(b => {
+    b.addEventListener("click", () => { $("#queryInput").value = b.textContent; performSearch(b.textContent); });
+  });
+
+  const debApply = debounce(applyFilters, 240);
+  ["#fGene","#fRsid","#fInheritance","#fCondition"].forEach(s => {
+    const el = $(s); if(el) el.addEventListener("input", debApply);
+  });
+  ["#fChromosome","#fAssembly","#fSignificance", "#fHasLiterature","#fHasRsid","#fStrictComplete"].forEach(s => {
+    const el = $(s); if(el) el.addEventListener("change", applyFilters);
+  });
+  
+  $("#clearFiltersBtn").addEventListener("click", clearFilters);
+  $("#tableSearch").addEventListener("input", debounce(e => { STATE.quickSearch = e.target.value; applyFilters(); }, 180));    $$("#variantTable thead th.sortable").forEach(th => {
+    th.addEventListener("click", () => {
+      const k = th.dataset.sort;
+      if(STATE.sort.key === k) STATE.sort.dir = STATE.sort.dir === "asc" ? "desc" : "asc";
+      else { STATE.sort.key = k; STATE.sort.dir = "asc"; }
+      sortVariants(); STATE.page = 1; renderTable();
+    });
+  });
+
+  $("#drawerClose").addEventListener("click", closeDrawer);
+  $("#modalClose").addEventListener("click", closeModal);
+  document.addEventListener("keydown", e => {
+    if(e.key === "Escape"){
+      if($("#modalBackdrop").classList.contains("open")) closeModal();
+      else if($("#drawer").classList.contains("open")) closeDrawer();
+    }
+  });
+
+  $("#clearCacheBtn").addEventListener("click", () => { Cache.clear(); showToast("Cache cleared", "success"); });
+}
+
+function renderHistory(){
+  const wrap = $("#recentSearches");
+  if(!wrap) return;
+  wrap.textContent = "";
+  const h = History.read();
+  if(!h.length) return;
+  const lbl = document.createElement("span"); lbl.textContent = "Recent:"; lbl.style.color = "var(--dim)"; wrap.appendChild(lbl);
+  h.forEach(q => {
+    const b = document.createElement("button"); b.className = "recent-chip"; b.textContent = q;
+    b.addEventListener("click", () => { $("#queryInput").value = q; performSearch(q); });
+    wrap.appendChild(b);
+  });
+}
+
+(function init(){
+  initEvents();
+  renderHistory();
+})();
+</script>
+</body>
+</html>
