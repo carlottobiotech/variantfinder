@@ -264,7 +264,7 @@ footer{ max-width:1560px;margin:0 auto;padding:20px 22px 40px; font-size:10.5px;
     <div class="search-input">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
       <input id="queryInput" type="text" autocomplete="off" spellcheck="false"
-             placeholder="Type a gene (e.g. GRIA1, NFATC2, BRCA1)..."
+             placeholder="Type a gene (e.g. GRIA1, NFATC2, CNOT3)..."
              aria-label="Consulta genômica">
       <button class="clear" id="clearQueryBtn" title="Limpar" aria-label="Limpar campo">✕</button>
     </div>
@@ -280,7 +280,7 @@ footer{ max-width:1560px;margin:0 auto;padding:20px 22px 40px; font-size:10.5px;
     <span>Try examples:</span>
     <button class="ex" data-example="GRIA1">GRIA1</button><span>,</span>
     <button class="ex" data-example="NFATC2">NFATC2</button><span>,</span>
-    <button class="ex" data-example="ADAMTS17">ADAMTS17</button>
+    <button class="ex" data-example="CNOT3">CNOT3</button>
   </div>
   <div class="recent-row" id="recentSearches" aria-label="Buscas recentes"></div>
 </section>
@@ -351,6 +351,20 @@ footer{ max-width:1560px;margin:0 auto;padding:20px 22px 40px; font-size:10.5px;
   </aside>
 
   <div class="main-col">
+    
+    <div class="panel" id="geneSummaryCard" style="display:none; padding:16px; margin-bottom:16px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; gap:16px; flex-wrap:wrap;">
+        <div>
+          <h3 style="font-size: 19px; color: var(--blue); font-family: var(--mono); margin:0;" id="gsSymbol">—</h3>
+          <div style="font-size: 13px; color: var(--txt); margin-top: 4px; font-weight: 500;" id="gsName"></div>
+        </div>
+      </div>
+      
+      <div style="font-size: 12.5px; color: var(--txt-2); line-height: 1.6; border-left: 2px solid var(--blue); padding-left: 12px; margin-bottom: 18px; background: rgba(61,126,255,0.03); padding-top: 8px; padding-bottom: 8px; border-radius: 0 6px 6px 0;" id="gsSummary"></div>
+      
+      <div id="gsLinksGroup" style="display:flex; flex-direction:column; gap:10px; border-top: 1px solid var(--border-2); padding-top: 14px;"></div>
+    </div>
+
     <div class="pipeline" id="pipeline" role="list">
       <div class="step" data-step="1" role="listitem"><div class="circle">1</div><div class="label">Identify</div></div>
       <div class="step" data-step="2" role="listitem"><div class="circle">2</div><div class="label">Retrieve</div></div>
@@ -441,6 +455,7 @@ footer{ max-width:1560px;margin:0 auto;padding:20px 22px 40px; font-size:10.5px;
 const API_CONFIG = {
   ensembl:  { base38: "https://rest.ensembl.org", base37: "https://grch37.rest.ensembl.org" },
   myvariant:{ base: "https://myvariant.info/v1" },
+  mygene:   { base: "https://mygene.info/v3" },
   ncbi:     { base: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils" },
   europepmc:{ base: "https://www.ebi.ac.uk/europepmc/webservices/rest" },
   openalex: { base: "https://api.openalex.org" },
@@ -488,9 +503,9 @@ const STATE = {
   variants: [],
   filtered: [],
   step: 0,
-  sort: { key: "significance", dir: "asc" },   // <-- default: por significância
+  sort: { key: "significance", dir: "asc" },
   page: 1,
-  pageSize: 20,                                 // <-- default: 20 por página
+  pageSize: 20,
   quickSearch: "",
   filters: {
     gene: "", chromosome: "", rsid: "", significance: "",
@@ -574,7 +589,6 @@ function sleep(ms) {
 function stripTags(html) {
   return String(html).replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
 }
-// Normaliza o nome do gene (remove duplicatas tipo "GRIA1,GRIA1,GRIA1")
 function normalizeGene(g) {
   if (!g) return null;
   const parts = String(g).split(",").map(function (s) { return s.trim(); }).filter(Boolean);
@@ -627,6 +641,15 @@ Sources.ensembl = {
       end: d.end,
       assembly: assembly
     };
+  }
+};
+
+Sources.mygene = {
+  async searchGene(geneSymbol) {
+    const url = API_CONFIG.mygene.base + "/query?q=symbol:" + encodeURIComponent(geneSymbol) + "&fields=name,symbol,summary,MIM,ensembl,HGNC,uniprot&species=human";
+    const d = await fetchJSON(url).catch(() => null);
+    if (d && d.hits && d.hits.length > 0) return d.hits[0];
+    return null;
   }
 };
 
@@ -984,26 +1007,31 @@ function normalizeMyVariantHit(hit, geneFallback) {
   v.sources.myvariant = true;
 
   const id = String(hit._id || "");
-  const m = /^(?:chr)?([0-9XYM]+):g\.(\d+)([ACGTN]+)>([ACGTN]+)$/i.exec(id);
-  if (m) {
-    v.chromosome = m[1];
-    v.position = parseInt(m[2], 10);
-    v.ref = m[3].toUpperCase();
-    v.alt = m[4].toUpperCase().split(",").filter(Boolean);
+  const mPos = /^(?:chr)?([0-9XYM]+):g\.(\d+)/i.exec(id);
+  if (mPos) {
+    v.chromosome = mPos[1];
+    v.position = parseInt(mPos[2], 10);
+  }
+  
+  const mAllele = /([a-zA-Z]+)>([a-zA-Z]+)$/i.exec(id);
+  if (mAllele) {
+    v.ref = mAllele[1].toUpperCase();
+    v.alt = mAllele[2].toUpperCase().split(",").filter(Boolean);
+  } else {
+    const mComplex = /(del|ins|dup)([a-zA-Z]*)$/i.exec(id);
+    if (mComplex) {
+      v.alt = [mComplex[1].toLowerCase() + (mComplex[2] ? " " + mComplex[2].toUpperCase() : "")];
+      v.ref = "?";
+    }
   }
 
   const rs = firstOf(hit.dbsnp ? hit.dbsnp.rsid : null);
   if (rs) { v.rsid = rs; v.sources.dbsnp = true; }
 
-  // Gene: pega APENAS um gene, priorizando ClinVar > dbNSFP > snpEff > fallback
   const ann = arr(hit.snpeff ? hit.snpeff.ann : []);
   let singleGene = null;
-  if (hit.clinvar && hit.clinvar.gene && hit.clinvar.gene.symbol) {
-    singleGene = hit.clinvar.gene.symbol;
-  }
-  if (!singleGene && hit.dbnsfp && hit.dbnsfp.genename) {
-    singleGene = hit.dbnsfp.genename;
-  }
+  if (hit.clinvar && hit.clinvar.gene && hit.clinvar.gene.symbol) singleGene = hit.clinvar.gene.symbol;
+  if (!singleGene && hit.dbnsfp && hit.dbnsfp.genename) singleGene = hit.dbnsfp.genename;
   if (!singleGene) {
     for (let i = 0; i < ann.length; i++) {
       if (ann[i] && ann[i].genename) { singleGene = ann[i].genename; break; }
@@ -1070,7 +1098,6 @@ function variantKey(v) {
 }
 
 function mergeVariant(a, b) {
-  // Normaliza ambos os genes
   a.gene = normalizeGene(a.gene);
   b.gene = normalizeGene(b.gene);
 
@@ -1088,6 +1115,7 @@ function mergeVariant(a, b) {
   if (!a.clinical.significance && b.clinical.significance) a.clinical.significance = b.clinical.significance;
   if (!a.clinical.condition && b.clinical.condition) a.clinical.condition = b.clinical.condition;
   if (!a.clinical.reviewStatus && b.clinical.reviewStatus) a.clinical.reviewStatus = b.clinical.reviewStatus;
+  
   if (a.population.gnomAD_AF == null && b.population.gnomAD_AF != null) {
     a.population.gnomAD_AF = b.population.gnomAD_AF;
   }
@@ -1095,6 +1123,7 @@ function mergeVariant(a, b) {
   if (!a.consequence.impact && b.consequence.impact) a.consequence.impact = b.consequence.impact;
   if (!a.consequence.transcript && b.consequence.transcript) a.consequence.transcript = b.consequence.transcript;
   a.clinical.inheritance = uniq(a.clinical.inheritance.concat(b.clinical.inheritance || []));
+
   const allArts = (a.literature || []).concat(b.literature || []);
   a.literature = deduplicateArticles(allArts);
   a.sources = Object.assign({}, a.sources, b.sources);
@@ -1142,20 +1171,16 @@ function deduplicateArticles(arts) {
    ============================================================ */
 const Cache = {
   read: function () {
-    try {
-      const s = localStorage.getItem(CACHE_KEY);
-      return s ? JSON.parse(s) : {};
-    } catch (e) { return {}; }
+    try { return JSON.parse(localStorage.getItem(CACHE_KEY)) || {}; } catch (e) { return {}; }
   },
   write: function (o) {
-    try { localStorage.setItem(CACHE_KEY, JSON.stringify(o)); } catch (e) { /* sandbox */ }
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(o)); } catch (e) { }
   },
   key: function (g, a) { return String(g).toUpperCase() + "::" + a; },
   get: function (g, a) {
     const all = this.read();
     const e = all[this.key(g, a)];
-    if (!e) return null;
-    if (Date.now() - e.timestamp > CACHE_TTL_MS) return null;
+    if (!e || Date.now() - e.timestamp > CACHE_TTL_MS) return null;
     return e;
   },
   set: function (g, a, payload) {
@@ -1165,16 +1190,13 @@ const Cache = {
     this.write(all);
   },
   clear: function () {
-    try { localStorage.removeItem(CACHE_KEY); } catch (e) { /* sandbox */ }
+    try { localStorage.removeItem(CACHE_KEY); } catch (e) { }
   }
 };
 
 const History = {
   read: function () {
-    try {
-      const s = localStorage.getItem(HISTORY_KEY);
-      return s ? JSON.parse(s) : [];
-    } catch (e) { return []; }
+    try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch (e) { return []; }
   },
   push: function (q) {
     if (!q) return;
@@ -1183,18 +1205,17 @@ const History = {
     for (let i = 0; i < old.length; i++) {
       if (old[i].toLowerCase() !== q.toLowerCase()) h.push(old[i]);
     }
-    const finalH = h.slice(0, 8);
-    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(finalH)); } catch (e) { /* sandbox */ }
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0, 8))); } catch (e) { }
     renderHistory();
   },
   clear: function () {
-    try { localStorage.removeItem(HISTORY_KEY); } catch (e) { /* sandbox */ }
+    try { localStorage.removeItem(HISTORY_KEY); } catch (e) { }
     renderHistory();
   }
 };
 
 /* ============================================================
-   9. TOAST
+   9. TOAST E GENE SUMMARY RENDER
    ============================================================ */
 function showToast(message, type) {
   type = type || "info";
@@ -1215,9 +1236,78 @@ function showToast(message, type) {
   }, 3200);
 }
 
-/* ============================================================
-   10. PIPELINE STEP
-   ============================================================ */
+function renderGeneSummary(info, fallbackSymbol) {
+  const card = $("#geneSummaryCard");
+  if (!card) return;
+
+  if (!info) {
+    card.style.display = "none";
+    return;
+  }
+
+  card.style.display = "block";
+  const symbol = info.symbol || fallbackSymbol;
+  
+  $("#gsSymbol").textContent = symbol;
+  $("#gsName").textContent = info.name || "Nenhuma descrição disponível";
+  $("#gsSummary").textContent = info.summary || "Nenhum resumo biológico/funcional disponível nos bancos de dados unificados para este gene.";
+
+  const mim = info.MIM || "";
+  const ensembl = (info.ensembl && info.ensembl.gene) ? info.ensembl.gene : (Array.isArray(info.ensembl) ? info.ensembl[0].gene : "");
+  const uniprot = (info.uniprot && info.uniprot['Swiss-Prot']) ? info.uniprot['Swiss-Prot'] : "";
+
+  const linksGroup = $("#gsLinksGroup");
+  const createBadge = (label, url, color) => {
+    if (!url) return '';
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer" 
+               style="background:rgba(255,255,255,0.03); border:1px solid ${color}66; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:600; color:${color}; text-decoration:none; transition:all 0.15s; white-space:nowrap; display:inline-flex; align-items:center; gap:4px;"
+               onmouseover="this.style.background='${color}22'; this.style.borderColor='${color}'"
+               onmouseout="this.style.background='rgba(255,255,255,0.03)'; this.style.borderColor='${color}66'">
+               ${label} <span style="font-size:9px; opacity:0.8;">↗</span>
+            </a>`;
+  };
+
+  const clinicalLinks = [
+    createBadge('GeneCards', `https://www.genecards.org/cgi-bin/carddisp.pl?gene=${symbol}`, '#93c5fd'),
+    mim ? createBadge(`OMIM: ${mim}`, `https://omim.org/entry/${mim}`, '#fcd34d') : '',
+    createBadge('PanelApp', `https://panelapp.genomicsengland.co.uk/panels/entities/${symbol}`, '#86efac'),
+    createBadge('ClinGen', `https://search.clinicalgenome.org/kb/genes?page=1&size=25&search=${symbol}`, '#fca5a5'),
+    createBadge('DECIPHER', `https://www.deciphergenomics.org/gene/${symbol}/overview`, '#c4b5fd'),
+    createBadge('Orphanet', `https://www.orpha.net/consor/cgi-bin/Disease_Search_Simple.php?lng=EN&diseaseGroup=${symbol}`, '#f9a8d4')
+  ].filter(Boolean).join('');
+
+  const variantLinks = [
+    createBadge('Varsome', `https://varsome.com/gene/${symbol}`, '#6ee7b7'),
+    createBadge('Franklin (Genoox)', `https://franklin.genoox.com/clinical-db/gene/${symbol}`, '#93c5fd'),
+    createBadge('gnomAD (v4)', `https://gnomad.broadinstitute.org/gene/${symbol}?dataset=gnomad_r4`, '#fdba74'),
+    createBadge('ClinVar', `https://www.ncbi.nlm.nih.gov/clinvar/?term=${symbol}[gene]`, '#a78bfa'),
+    createBadge('dbSNP', `https://www.ncbi.nlm.nih.gov/snp/?term=${symbol}`, '#cbd5e1')
+  ].filter(Boolean).join('');
+
+  const bioLinks = [
+    ensembl ? createBadge(`Ensembl: ${ensembl}`, `https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=${ensembl}`, '#fcd34d') : '',
+    uniprot ? createBadge(`UniProt: ${uniprot}`, `https://www.uniprot.org/uniprotkb/${uniprot}/entry`, '#86efac') : '',
+    createBadge('UCSC Browser', `https://genome.ucsc.edu/cgi-bin/hgTracks?db=hg38&singleSearch=knownCanonical&position=${symbol}`, '#93c5fd'),
+    createBadge('NCBI Gene', `https://www.ncbi.nlm.nih.gov/gene/?term=${symbol}`, '#cbd5e1'),
+    createBadge('MARRVEL', `http://marrvel.org/search/gene/${symbol}`, '#fca5a5')
+  ].filter(Boolean).join('');
+
+  linksGroup.innerHTML = `
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <span style="color:var(--muted); font-size:10px; width:140px; text-transform:uppercase; font-weight:700; letter-spacing:0.05em;"><i class="fa-solid fa-notes-medical" style="margin-right:4px;"></i> Clínica & Doenças</span> 
+      <div style="display:flex; gap:6px; flex-wrap:wrap; flex:1;">${clinicalLinks}</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <span style="color:var(--muted); font-size:10px; width:140px; text-transform:uppercase; font-weight:700; letter-spacing:0.05em;"><i class="fa-solid fa-dna" style="margin-right:4px;"></i> Anotação de Variantes</span> 
+      <div style="display:flex; gap:6px; flex-wrap:wrap; flex:1;">${variantLinks}</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <span style="color:var(--muted); font-size:10px; width:140px; text-transform:uppercase; font-weight:700; letter-spacing:0.05em;"><i class="fa-solid fa-microscope" style="margin-right:4px;"></i> Biologia Genômica</span> 
+      <div style="display:flex; gap:6px; flex-wrap:wrap; flex:1;">${bioLinks}</div>
+    </div>
+  `;
+}
+
 function setStep(n) {
   STATE.step = n;
   const steps = $$("#pipeline .step");
@@ -1230,9 +1320,6 @@ function setStep(n) {
   }
 }
 
-/* ============================================================
-   11. DASHBOARD
-   ============================================================ */
 function renderDashboard() {
   const wrap = $("#dashCards");
   if (!wrap) return;
@@ -1247,14 +1334,10 @@ function renderDashboard() {
   }
   const iconStyle = 'style="width:22px;height:22px;color:var(--dim);flex-shrink:0;"';
   const cards = [
-    { label: "Displayed", val: v.length,
-      icon: '<svg ' + iconStyle + ' viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>' },
-    { label: "Pathogenic", val: patho,
-      icon: '<svg ' + iconStyle + ' viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>' },
-    { label: "Has rsID", val: withRsid,
-      icon: '<svg ' + iconStyle + ' viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4L13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 2.8 12V4a1 1 0 0 1 1-1h8a2 2 0 0 1 1.4.6l7.4 7.4a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg>' },
-    { label: "With literature", val: withLit,
-      icon: '<svg ' + iconStyle + ' viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>' }
+    { label: "Displayed", val: v.length, icon: '<svg ' + iconStyle + ' viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>' },
+    { label: "Pathogenic", val: patho, icon: '<svg ' + iconStyle + ' viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>' },
+    { label: "Has rsID", val: withRsid, icon: '<svg ' + iconStyle + ' viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4L13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 2.8 12V4a1 1 0 0 1 1-1h8a2 2 0 0 1 1.4.6l7.4 7.4a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg>' },
+    { label: "With literature", val: withLit, icon: '<svg ' + iconStyle + ' viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>' }
   ];
   for (let i = 0; i < cards.length; i++) {
     const c = cards[i];
@@ -1272,9 +1355,6 @@ function renderDashboard() {
   }
 }
 
-/* ============================================================
-   12. FILTERS
-   ============================================================ */
 function readFilters() {
   STATE.filters.gene = val("#fGene").trim();
   STATE.filters.chromosome = val("#fChromosome");
@@ -1311,7 +1391,6 @@ function applyFilters() {
       }
 
       if (pass && f.hasLiterature && (!v.literature || v.literature.length === 0)) pass = false;
-
       if (pass && f.gene && String(v.gene || "").toLowerCase().indexOf(f.gene.toLowerCase()) === -1) pass = false;
       if (pass && f.chromosome && String(v.chromosome) !== String(f.chromosome)) pass = false;
       if (pass && f.rsid && String(v.rsid || "").toLowerCase().indexOf(f.rsid.toLowerCase()) === -1) pass = false;
@@ -1390,8 +1469,7 @@ function renderFilterCount() {
 }
 
 function populateFilterOptions() {
-  const chroms = uniq(STATE.variants.map(function (v) { return v.chromosome; }))
-    .filter(Boolean)
+  const chroms = uniq(STATE.variants.map(function (v) { return v.chromosome; })).filter(Boolean)
     .sort(function (a, b) {
       const na = parseInt(a, 10), nb = parseInt(b, 10);
       if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
@@ -1408,7 +1486,7 @@ function populateFilterOptions() {
     sc.value = chroms.indexOf(curC) !== -1 ? curC : "";
   }
 
-  const sigs = uniq(STATE.variants.map(function (v) { return v.clinical.significance; }).filter(Boolean)).sort();
+  const sigs = uniq(STATE.variants.map(function (v) { return v.clinical.significance; })).filter(Boolean).sort();
   const ss = $("#fSignificance");
   if (ss) {
     const curS = ss.value;
@@ -1442,13 +1520,9 @@ function clearFilters() {
   applyFilters();
 }
 
-/* ============================================================
-   13. TABLE
-   ============================================================ */
 function significanceClass(sig) {
   const s = String(sig || "").toLowerCase();
-  if (!s) return "notprovided";
-  if (s === "not provided") return "notprovided";
+  if (!s || s === "not provided") return "notprovided";
   if (s.indexOf("conflicting") !== -1) return "conflicting";
   if (s.indexOf("likely pathogenic") !== -1) return "likely-pathogenic";
   if (s.indexOf("pathogenic") !== -1) return "pathogenic";
@@ -1466,7 +1540,6 @@ function significanceIcon(sig) {
   return "·";
 }
 
-// Rank de significância: 1 = patogênica, 7 = not provided
 function significanceRank(sig) {
   const s = String(sig || "").toLowerCase();
   if (!s || s === "not provided") return 7;
@@ -1501,7 +1574,6 @@ function sortVariants() {
         const ra = significanceRank(a.clinical.significance);
         const rb = significanceRank(b.clinical.significance);
         if (ra !== rb) return (ra - rb) * mul;
-        // Empate: ordena por posição
         va = (a.position != null) ? a.position : Infinity;
         vb = (b.position != null) ? b.position : Infinity;
         return (va - vb) * mul;
@@ -1651,9 +1723,6 @@ function renderPagination() {
   el.appendChild(mk("›", Math.min(pages, STATE.page + 1), { disabled: STATE.page === pages }));
 }
 
-/* ============================================================
-   14. DRAWER
-   ============================================================ */
 function openDrawer(v) {
   STATE.selectedKey = variantKey(v);
   const d = $("#drawer");
@@ -1799,9 +1868,6 @@ function closeDrawer() {
   for (let i = 0; i < trs.length; i++) trs[i].classList.remove("selected");
 }
 
-/* ============================================================
-   15. MODAL
-   ============================================================ */
 function openModal(title) {
   const t = $("#modalTitle");
   if (t) t.textContent = title;
@@ -1815,9 +1881,6 @@ function closeModal() {
   if (m) m.classList.remove("open");
 }
 
-/* ============================================================
-   16. ARTICLE URL RESOLVER + CARD
-   ============================================================ */
 function resolveArticleURL(a) {
   if (!a) return null;
   if (a.doi) return { url: "https://doi.org/" + encodeURIComponent(a.doi), label: "Open in publisher (DOI)" };
@@ -1960,9 +2023,6 @@ function buildArticleCard(a) {
   return el;
 }
 
-/* ============================================================
-   17. LITERATURE MODAL
-   ============================================================ */
 async function fetchPubMedFullAbstracts(pmids) {
   if (!pmids || !pmids.length) return {};
   const out = {};
@@ -1991,7 +2051,7 @@ async function fetchPubMedFullAbstracts(pmids) {
         });
         if (parts.length > 0) out[pmid] = parts.join(" ");
       });
-    } catch (e) { /* silent */ }
+    } catch (e) { }
   }
   return out;
 }
@@ -2107,12 +2167,8 @@ function openLiteratureModal(v) {
   body.appendChild(wrap);
 }
 
-/* ============================================================
-   18. DEEP LITERATURE SEARCH
-   ============================================================ */
 async function searchDbSnpRsids(query) {
-  const url = API_CONFIG.ncbi.base + "/esearch.fcgi?db=snp&retmode=json&retmax=50&term=" +
-              encodeURIComponent(query) + NCBI_PARAMS;
+  const url = API_CONFIG.ncbi.base + "/esearch.fcgi?db=snp&retmode=json&retmax=50&term=" + encodeURIComponent(query) + NCBI_PARAMS;
   const res = await fetchJSON(url).catch(function () { return null; });
   if (!res || !res.esearchresult || !res.esearchresult.idlist) return [];
   return res.esearchresult.idlist.map(function (id) { return "rs" + id; });
@@ -2120,33 +2176,26 @@ async function searchDbSnpRsids(query) {
 
 async function fetchDbSnpVariants(rsids, gene, conditionLabel) {
   if (!rsids || !rsids.length) return [];
-  const ids = rsids.map(function (r) { return String(r).replace(/^rs/i, ""); });
-  const sumUrl = API_CONFIG.ncbi.base + "/esummary.fcgi?db=snp&retmode=json&id=" +
-                 ids.join(",") + NCBI_PARAMS;
-  const sum = await fetchJSON(sumUrl).catch(function () { return null; });
-  if (!sum || !sum.result) return [];
   const out = [];
-  for (let i = 0; i < rsids.length; i++) {
-    const rsid = rsids[i];
-    const cleanId = String(rsid).replace(/^rs/i, "");
-    const doc = sum.result[cleanId];
-    if (!doc) continue;
-    const v = createVariant();
-    v.rsid = rsid;
-    v.chromosome = doc.chr || null;
-    v.gene = normalizeGene(gene);
-    if (doc.spdi) {
-      const m = /:g\.(\d+):([ACGTN]+):([ACGTN]+)/i.exec(doc.spdi);
-      if (m) {
-        v.position = parseInt(m[1], 10);
-        v.ref = m[2];
-        v.alt = [m[3]];
+  
+  for (let i = 0; i < rsids.length; i += 15) {
+    const chunk = rsids.slice(i, i + 15);
+    const queryTerms = chunk.map(function(r) { return 'dbsnp.rsid:' + r; }).join(' OR ');
+    
+    try {
+      const hits = await Sources.myvariant.query(queryTerms, { size: 50, assembly: STATE.assembly });
+      for (let j = 0; j < hits.length; j++) {
+        const v = normalizeMyVariantHit(hits[j], gene);
+        const vGeneStr = String(v.gene || "").toUpperCase();
+        const searchedGeneStr = String(gene || "").toUpperCase();
+        if (vGeneStr === searchedGeneStr) {
+          v.clinical.condition = appendAssoc(v.clinical.condition, conditionLabel);
+          out.push(v);
+        }
       }
+    } catch (e) {
+      console.error("Erro ao buscar lote de rsIDs no MyVariant", e);
     }
-    v.variant = buildVariantLabel(v.ref, v.alt);
-    v.clinical.condition = "Assoc: " + conditionLabel;
-    v.sources.dbsnp = true;
-    out.push(v);
   }
   return out;
 }
@@ -2312,9 +2361,6 @@ async function performDeepLiteratureSearch() {
   }
 }
 
-/* ============================================================
-   19. SEARCH ENGINE
-   ============================================================ */
 function detectQueryType(q) {
   const s = q.trim();
   if (!s) return null;
@@ -2337,17 +2383,28 @@ async function performSearch(rawQuery) {
 
   try {
     setStep(1);
+
+    const gsCard = $("#geneSummaryCard");
+    if (gsCard) gsCard.style.display = "none";
+
     const cached = Cache.get(q, STATE.assembly);
     if (cached && cached.variants && cached.variants.length > 0) {
       STATE.gene = cached.gene || q;
       STATE.variants = cached.variants;
+      
+      const geneInfo = await Sources.mygene.searchGene(STATE.gene);
+      renderGeneSummary(geneInfo, STATE.gene);
+
       showToast("Results loaded from cache", "success");
     } else {
-      const [ensRes, mvRes] = await Promise.all([
+      const [ensRes, mvRes, geneInfo] = await Promise.all([
         Sources.ensembl.searchGene(q, STATE.assembly).catch(function () { return null; }),
-        Sources.myvariant.searchGene(q, STATE.assembly, MAX_GENE_VARIANTS).catch(function () { return null; })
+        Sources.myvariant.searchGene(q, STATE.assembly, MAX_GENE_VARIANTS).catch(function () { return null; }),
+        Sources.mygene.searchGene(q).catch(function () { return null; })
       ]);
       STATE.gene = normalizeGene((ensRes && ensRes.symbol) ? ensRes.symbol : q);
+
+      renderGeneSummary(geneInfo, STATE.gene);
 
       setStep(2);
       const raw = [];
@@ -2356,9 +2413,7 @@ async function performSearch(rawQuery) {
         const v = normalizeMyVariantHit(hits[i], STATE.gene);
         if (v.chromosome || v.rsid) raw.push(v);
       }
-      for (let i = 0; i < raw.length; i++) {
-        if (!raw[i].gene) raw[i].gene = STATE.gene;
-      }
+      
       STATE.variants = deduplicateVariants(raw);
 
       setStep(3);
@@ -2389,9 +2444,6 @@ async function performSearch(rawQuery) {
   }
 }
 
-/* ============================================================
-   20. HISTORY RENDER
-   ============================================================ */
 function renderHistory() {
   const wrap = $("#recentSearches");
   if (!wrap) return;
@@ -2416,9 +2468,6 @@ function renderHistory() {
   }
 }
 
-/* ============================================================
-   21. EVENT HANDLERS
-   ============================================================ */
 function initEvents() {
   safeBind("#btnApplyFilters", "click", applyFilters);
   safeBind("#searchBtn", "click", function () { performSearch(val("#queryInput")); });
@@ -2448,7 +2497,6 @@ function initEvents() {
     });
   }
 
-  // Quick chips — multi-select (OR logic)
   const chips = $$(".quick-chip");
   for (let i = 0; i < chips.length; i++) {
     const btn = chips[i];
@@ -2495,7 +2543,6 @@ function initEvents() {
     }, 180));
   }
 
-  // Per page selector
   const pss = $("#pageSizeSelect");
   if (pss) {
     pss.addEventListener("change", function () {
@@ -2537,16 +2584,12 @@ function initEvents() {
   });
 }
 
-/* ============================================================
-   22. INIT
-   ============================================================ */
 (function init() {
   initEvents();
   renderHistory();
   renderDashboard();
   renderTable();
 
-  // Sync page-size select with current STATE.pageSize
   const pss = $("#pageSizeSelect");
   if (pss) pss.value = String(STATE.pageSize);
 })();
