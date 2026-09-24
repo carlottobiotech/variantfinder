@@ -3,10 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Variant Finder</title>
+<title>Variant Finder - LPT</title>
+<!-- Tailwind & Fonts -->
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- SheetJS para Exportação de Excel Real -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
 <script>
   tailwind.config = {
     darkMode: 'class',
@@ -36,8 +40,8 @@
   --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
 }
 *{box-sizing:border-box}
-html,body{height:100%}
-body{ margin:0; font-family:var(--sans); font-size:13.5px; line-height:1.5; color:var(--txt); background:var(--bg); -webkit-font-smoothing:antialiased; }
+html,body{height:100%; background:var(--bg);}
+body{ margin:0; font-family:var(--sans); font-size:13.5px; line-height:1.5; color:var(--txt); -webkit-font-smoothing:antialiased; }
 h1,h2,h3,h4{margin:0;font-weight:600}
 button{font-family:inherit;font-size:inherit;color:inherit;cursor:pointer}
 input,select,textarea{font-family:inherit;font-size:inherit}
@@ -57,6 +61,8 @@ a:hover{text-decoration:underline}
 .topbar-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .chip-btn{ display:inline-flex;align-items:center;gap:6px; background:var(--panel-2);border:1px solid var(--border);color:var(--txt-2); padding:6px 11px;border-radius:999px;font-size:11.5px;letter-spacing:.02em; transition:background .15s,border-color .15s,color .15s; }
 .chip-btn:hover{border-color:var(--border-2);color:var(--txt)}
+.btn-save-cart { background: rgba(34,197,94,0.1); border: 1px solid var(--green); color: var(--green-txt); font-weight: 600; padding: 6px 14px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; cursor: pointer; transition: all 0.15s; }
+.btn-save-cart:hover { background: var(--green); color: #fff; box-shadow: 0 0 10px rgba(34,197,94,0.4); }
 
 .hero{ padding:36px 22px 22px;text-align:center; border-bottom:1px solid var(--border); background:radial-gradient(900px 260px at 50% 0%,rgba(61,126,255,.08),transparent 70%),var(--bg-2); }
 .hero h2{ font-size:26px;font-weight:600;letter-spacing:-.01em; color:#f3f6fb;margin-bottom:22px; }
@@ -106,7 +112,15 @@ a:hover{text-decoration:underline}
 .quick-chip.active{ background:var(--blue); color:#fff; border-color:var(--blue); }
 .quick-chip:disabled{ opacity:0.6; cursor:wait; }
 
-.main-col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.main-col{display:flex;flex-direction:column;gap:16px;min-width:0; overflow-x:hidden;}
+
+.not-found-panel { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 4px; display: none; }
+.not-found-panel h3 { color: #fcd34d; font-size: 13px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.not-found-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.not-found-item { background: var(--panel-2); border: 1px solid var(--border-2); padding: 6px 12px; border-radius: 6px; font-size: 12px; display: flex; align-items: center; gap: 10px; }
+.not-found-item span { color: var(--txt); font-family: var(--mono); font-weight: 600;}
+.not-found-item a { font-size: 10.5px; color: var(--blue); text-decoration: none; padding: 2px 6px; border: 1px solid rgba(61,126,255,0.3); border-radius: 4px; transition: all 0.15s;}
+.not-found-item a:hover { background: rgba(61,126,255,0.1); }
 
 .pipeline{ display:flex;align-items:flex-start;justify-content:space-between; padding:16px 8px 10px;position:relative;background:var(--panel); border:1px solid var(--border);border-radius:var(--radius); }
 .pipeline::before{ content:"";position:absolute;top:28px;left:11%;right:11%;height:1px; background:var(--border-2);z-index:0; }
@@ -167,9 +181,14 @@ table.variants .empty-row td{ text-align:center;color:var(--dim);padding:0; }
 .badge.notprovided{color:var(--muted);border-color:var(--border-2);background:rgba(255,255,255,.02)}
 .na{color:var(--dim)}
 .pharm-badge {color:#f472b6; border-color:rgba(244,114,182,0.5); background:rgba(244,114,182,0.1);}
+.nf-badge {background:var(--panel-2); color:var(--dim); font-size:9.5px; padding:2px 6px; border-radius:4px; border:1px solid var(--border-2); letter-spacing:0.05em; font-weight:600; display:inline-block;}
 
 .lit-btn{ background:rgba(61,126,255,.1);border:1px solid rgba(61,126,255,.35);color:#93c5fd; border-radius:999px;padding:4px 12px;font-size:11px;white-space:nowrap; position:relative; z-index:10; display:inline-flex; align-items:center; gap:5px; cursor:pointer;}
 .lit-btn:hover{background:rgba(61,126,255,.2); color:#fff;}
+
+.add-btn { background: var(--panel-3); border: 1px solid var(--border-2); color: var(--green); border-radius: 5px; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; font-size: 14px;}
+.add-btn:hover { background: rgba(34,197,94,0.15); border-color: var(--green); color: var(--green-txt); }
+.add-btn.saved { background: var(--green); color: white; border-color: var(--green); }
 
 .pagination{ display:flex;align-items:center;gap:10px;flex-wrap:wrap; padding:11px 14px;border-top:1px solid var(--border); font-size:11.5px;color:var(--muted); }
 .pagination .spacer{flex:1}
@@ -212,7 +231,7 @@ footer{ max-width:1560px;margin:0 auto;padding:20px 22px 40px; font-size:10.5px;
 .lit-card .lit-title{font-size:13.5px;line-height:1.45;margin-bottom:6px;font-weight:500}
 .lit-card .lit-title a{color:var(--txt);border-bottom:1px solid transparent;text-decoration:none;transition:color .15s,border-color .15s;cursor:pointer}
 .lit-card .lit-title a:hover{color:#93c5fd;border-bottom-color:#93c5fd;text-decoration:none}
-.lit-card .lit-title a::after{content:'↗';font-size:11px;margin-left:5px;color:var(--blue);opacity:.7;display:inline-block}
+.lit-card .lit-title a::after{content:' \2197';font-size:11px;margin-left:5px;color:var(--blue);opacity:.7;display:inline-block}
 .lit-card .lit-authors{font-size:12px;color:var(--txt-2);margin-bottom:5px}
 .lit-card .lit-meta{font-size:11px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
 .lit-card .lit-meta .sep{color:var(--dim)}
@@ -233,10 +252,7 @@ footer{ max-width:1560px;margin:0 auto;padding:20px 22px 40px; font-size:10.5px;
 .lit-card .lit-idlink:hover{text-decoration:underline}
 .lit-card .open-article{display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:linear-gradient(180deg,rgba(61,126,255,.22),rgba(61,126,255,.12));border:1px solid rgba(61,126,255,.5);color:#bfdbfe;padding:6px 13px;border-radius:7px;font-size:11.5px;font-weight:600;text-decoration:none;cursor:pointer;transition:background .15s,color .15s}
 .lit-card .open-article:hover{background:linear-gradient(180deg,rgba(61,126,255,.35),rgba(61,126,255,.2));color:#fff;text-decoration:none}
-.lit-card .open-article::after{content:'↗';font-size:13px}
 .lit-card .open-article.no-link{background:var(--panel-2);border-color:var(--border);color:var(--dim);cursor:not-allowed;pointer-events:none}
-.lit-card .open-article.no-link::after{content:''}
-.lit-card .relevance-badge{position:absolute;top:14px;right:16px;font-size:10px;color:var(--dim);font-family:var(--mono)}
 </style>
 </head>
 <body>
@@ -247,11 +263,14 @@ footer{ max-width:1560px;margin:0 auto;padding:20px 22px 40px; font-size:10.5px;
       <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3c6 4 6 8 0 12s-6 8 0 12"/><path d="M17 3c-6 4-6 8 0 12s6 8 0 12"/><path d="M8.5 6h7M9.5 10h5M9.5 14h5M8.5 18h7"/></svg>
     </div>
     <div>
-      <h1>VARIANT FINDER BETA VERSION</h1>
-      <p class="sub">Genomic Database Annotation</p>
+      <h1>VARIANT FINDER</h1>
+      <p class="sub">Live Genomic Database Annotation</p>
     </div>
   </div>
   <div class="topbar-actions">
+    <button class="btn-save-cart" id="openCartBtn" title="Ver variantes salvas">
+      <i class="fa-solid fa-download"></i> Saved (<span id="cartCount">0</span>)
+    </button>
     <button class="chip-btn" id="clearCacheBtn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l16-2 1 6H5z"/><path d="M6 11l1.5 9h9L18 11"/></svg>
       Cache
@@ -260,12 +279,12 @@ footer{ max-width:1560px;margin:0 auto;padding:20px 22px 40px; font-size:10.5px;
 </header>
 
 <section class="hero">
-  <h2>Variant Finder Beta Version</h2>
+  <h2>Genomic Variant &amp; Literature Explorer</h2>
   <div class="search-row">
     <div class="search-input">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
       <input id="queryInput" type="text" autocomplete="off" spellcheck="false"
-             placeholder="Type a gene (e.g. GRIA1, NFATC2) or rsID (e.g. rs10070447)..."
+             placeholder="Genes (ADAMTS17, CNOT3), rsIDs (rs10070447) or HLAs (HLA-B*46:01)..."
              aria-label="Consulta genômica">
       <button class="clear" id="clearQueryBtn" title="Limpar" aria-label="Limpar campo">✕</button>
     </div>
@@ -278,10 +297,8 @@ footer{ max-width:1560px;margin:0 auto;padding:20px 22px 40px; font-size:10.5px;
 
   <div class="examples-row">
     <span class="type-chip">Type: <b id="detectedChip">—</b></span>
-    <span>Try examples:</span>
-    <button class="ex" data-example="GRIA1">GRIA1</button><span>,</span>
-    <button class="ex" data-example="CNOT3">CNOT3</button><span>,</span>
-    <button class="ex" data-example="rs10070447">rs10070447</button>
+    <span>Try bulk search:</span>
+    <button class="ex" data-example="GRIA1, rs10070447, HLA-B*46:01">GRIA1, rs10070447, HLA-B*46:01</button>
   </div>
   <div class="recent-row" id="recentSearches" aria-label="Buscas recentes"></div>
 </section>
@@ -357,6 +374,11 @@ footer{ max-width:1560px;margin:0 auto;padding:20px 22px 40px; font-size:10.5px;
 
   <div class="main-col">
     
+    <div id="notFoundPanel" class="not-found-panel">
+      <h3><i class="fa-solid fa-triangle-exclamation"></i> Queries Not Found via API</h3>
+      <div class="not-found-list" id="notFoundList"></div>
+    </div>
+
     <div class="panel" id="geneSummaryCard" style="display:none; padding:16px; margin-bottom:16px;">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; gap:16px; flex-wrap:wrap;">
         <div>
@@ -404,6 +426,7 @@ footer{ max-width:1560px;margin:0 auto;padding:20px 22px 40px; font-size:10.5px;
         <table class="variants" id="variantTable">
           <thead>
             <tr>
+              <th style="width: 40px; text-align: center;"></th>
               <th class="sortable" data-sort="gene">Gene <span class="arrow"></span></th>
               <th class="sortable" data-sort="variant">Variant</th>
               <th class="sortable" data-sort="chromosome">Chr</th>
@@ -411,9 +434,11 @@ footer{ max-width:1560px;margin:0 auto;padding:20px 22px 40px; font-size:10.5px;
               <th>Ref</th>
               <th>Alt</th>
               <th class="sortable" data-sort="rsid">rsID</th>
+              <th class="col-cons">Consequence</th>
               <th>Inheritance</th>
-              <th class="sortable" data-sort="significance">Significance <span class="arrow"></span></th>
+              <th class="sortable col-sig" data-sort="significance">Significance <span class="arrow"></span></th>
               <th>Condition</th>
+              <th>Sources</th>
               <th>Article</th>
             </tr>
           </thead>
@@ -440,12 +465,51 @@ footer{ max-width:1560px;margin:0 auto;padding:20px 22px 40px; font-size:10.5px;
   <div class="drawer-body" id="drawerBody"></div>
 </aside>
 
-<div class="modal-backdrop" id="modalBackdrop">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+<!-- Modal do Carrinho de Variantes Salvas -->
+<div class="modal-backdrop" id="cartModalBackdrop">
+  <div class="modal" role="dialog" aria-modal="true" style="max-width: 90vw; max-height: 90vh;">
     <div class="modal-head">
-      <h3 id="modalTitle">—</h3>
-      <button class="icon-btn" id="modalClose" aria-label="Fechar">✕</button>
+      <h3 style="font-size: 14px; font-family: var(--mono); color: var(--green-txt);"><i class="fa-solid fa-list-check"></i> Saved Variants Export</h3>
+      <button class="icon-btn" id="cartModalClose" aria-label="Fechar">✕</button>
     </div>
+    <div class="modal-body" style="padding:0; overflow:hidden; display:flex; flex-direction:column; height: 100%;">
+      <div style="padding: 14px 20px; border-bottom: 1px solid var(--border-2); display:flex; justify-content:space-between; align-items:center; flex-wrap: wrap; gap:10px;">
+        <span style="color:var(--txt-2); font-size:12.5px;">Revisão das variantes selecionadas para exportação em Excel.</span>
+        <div style="display:flex; gap:10px;">
+          <button id="btnExportCSV" class="btn block" style="margin-top:0; padding: 6px 14px; background:var(--green); color:#fff; border: none; width:auto;"><i class="fa-solid fa-file-excel" style="margin-right:5px;"></i> Download Excel</button>
+        </div>
+      </div>
+      <div style="overflow:auto; flex:1;">
+        <table class="variants" style="width:100%;">
+          <thead style="position:sticky; top:0; z-index:10;">
+            <tr>
+              <th style="width: 40px;"></th>
+              <th>Gene</th>
+              <th>Variant</th>
+              <th>Chr</th>
+              <th>Position</th>
+              <th>Ref</th>
+              <th>Alt</th>
+              <th>rsID</th>
+              <th class="col-cons">Consequence</th>
+              <th>Inheritance</th>
+              <th class="col-sig">Significance</th>
+              <th>Condition</th>
+              <th>Sources</th>
+              <th>Article</th>
+            </tr>
+          </thead>
+          <tbody id="cartTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-backdrop" id="modalBackdrop" role="presentation">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head"><h3 id="modalTitle">LITERATURE</h3><button class="icon-btn" id="modalClose" type="button" aria-label="Fechar literatura">✕</button></div>
     <div class="modal-body" id="modalBody"></div>
   </div>
 </div>
@@ -456,7 +520,7 @@ footer{ max-width:1560px;margin:0 auto;padding:20px 22px 40px; font-size:10.5px;
 "use strict";
 
 /* ============================================================
-   1. CONFIG
+   1. CONFIG & UTILS (100% NO BACKSLASHES)
    ============================================================ */
 const API_CONFIG = {
   ensembl:  { base38: "https://rest.ensembl.org", base37: "https://grch37.rest.ensembl.org" },
@@ -487,7 +551,6 @@ const SOURCE_LABELS = {
   semanticscholar: "Semantic Scholar"
 };
 
-// ADICIONADO: pharmgkb na lista de campos
 const MV_FIELDS = [
   "_id","_score","dbsnp.rsid",
   "clinvar.variant_id","clinvar.gene.symbol",
@@ -510,6 +573,7 @@ const STATE = {
   geneInheritance: [],
   variants: [],
   filtered: [],
+  cart: [], 
   step: 0,
   sort: { key: "significance", dir: "asc" },
   page: 1,
@@ -535,7 +599,7 @@ function val(sel) { const e = $(sel); return e ? e.value : ""; }
 function isChecked(sel) { const e = $(sel); return e ? e.checked : false; }
 function safeBind(sel, ev, fn) { const e = $(sel); if (e) e.addEventListener(ev, fn); }
 function esc(v) {
-  return String(v != null ? v : "").replace(/[&<>"']/g, function (c) {
+  return String(v != null ? v : "").replace(new RegExp("[&<>\"']", "g"), function (c) {
     const map = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
     return map[c];
   });
@@ -578,7 +642,7 @@ function debounce(fn, ms) {
   };
 }
 function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
-function stripTags(html) { return String(html).replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim(); }
+function stripTags(html) { return String(html).replace(new RegExp("<[^>]*>", "g"), "").replace(new RegExp("[ " + String.fromCharCode(9, 10, 13) + "]+", "g"), " ").trim(); }
 function normalizeGene(g) {
   if (!g) return null;
   const parts = String(g).split(",").map(function (s) { return s.trim(); }).filter(Boolean);
@@ -587,6 +651,12 @@ function normalizeGene(g) {
     if (unique.indexOf(parts[i]) === -1) unique.push(parts[i]);
   }
   return unique.length ? unique[0] : null;
+}
+function createNfNode() {
+  const s = document.createElement("span");
+  s.className = "nf-badge";
+  s.textContent = "NOT FOUND";
+  return s;
 }
 
 async function fetchJSON(url, options, timeout) {
@@ -631,7 +701,7 @@ Sources.ensembl = {
 Sources.mygene = {
   async searchGene(geneSymbol) {
     const url = API_CONFIG.mygene.base + "/query?q=symbol:" + encodeURIComponent(geneSymbol) + "&fields=name,symbol,summary,MIM,ensembl,HGNC,uniprot&species=human";
-    const d = await fetchJSON(url).catch(() => null);
+    const d = await fetchJSON(url).catch(function(){return null;});
     if (d && d.hits && d.hits.length > 0) return d.hits[0];
     return null;
   }
@@ -640,7 +710,7 @@ Sources.mygene = {
 Sources.panelapp = {
   async searchGene(geneSymbol) {
     const url = API_CONFIG.panelapp.base + "/genes/" + encodeURIComponent(geneSymbol) + "/";
-    const d = await fetchJSON(url).catch(() => null);
+    const d = await fetchJSON(url).catch(function(){return null;});
     if (d && d.results && d.results.length > 0) {
       const inhList = [];
       d.results.forEach(function (r) {
@@ -672,12 +742,14 @@ Sources.myvariant = {
   async searchGene(gene, assembly, size) {
     assembly = assembly || "GRCh38";
     size = size || MAX_GENE_VARIANTS;
-    const q = '(clinvar.gene.symbol:"' + gene + '" OR snpeff.ann.genename:"' + gene + '" OR dbnsfp.genename:"' + gene + '")';
+    const Q = String.fromCharCode(34);
+    const q = "(clinvar.gene.symbol:" + Q + gene + Q + " OR snpeff.ann.genename:" + Q + gene + Q + " OR dbnsfp.genename:" + Q + gene + Q + ")";
     return this.query(q, { assembly: assembly, size: size });
   },
   async searchRsid(rsid, assembly) {
     assembly = assembly || "GRCh38";
-    const q = 'dbsnp.rsid:"' + rsid + '"';
+    const Q = String.fromCharCode(34);
+    const q = "dbsnp.rsid:" + Q + rsid + Q;
     return this.query(q, { assembly: assembly, size: 10 });
   }
 };
@@ -711,11 +783,11 @@ function parsePubmed(doc) {
     if (ids[i].idtype === "pmc" && !pmcid) pmcid = ids[i].value;
   }
   const pubd = doc.pubdate || doc.epubdate || "";
-  const ymMatch = /\b(19|20)\d{2}\b/.exec(pubd);
+  const ymMatch = new RegExp("(?:^|[^0-9])((?:19|20)[0-9]{2})(?:[^0-9]|$)").exec(pubd);
   return {
     pmid: String(doc.uid), pmcid: pmcid, doi: doi, title: doc.title || null,
     authors: authors, firstAuthor: authors.length ? authors[0].split(" ")[0] : null,
-    journal: doc.fulljournalname || doc.source || null, year: ymMatch ? ymMatch[0] : null,
+    journal: doc.fulljournalname || doc.source || null, year: ymMatch ? ymMatch[1] : null,
     abstract: null, citedBy: null, sources: { pubmed: true }
   };
 }
@@ -737,10 +809,10 @@ Sources.europepmc = {
 
 function parseEuropePMC(r) {
   if (!r || !r.title) return null;
-  const authors = r.authorString ? r.authorString.split(/,|;| and /).map(function (s) { return s.trim(); }).filter(Boolean) : [];
+  const authors = r.authorString ? r.authorString.split(new RegExp("[,;]| and ")).map(function (s) { return s.trim(); }).filter(Boolean) : [];
   const year = r.pubYear || (r.firstPublicationDate ? r.firstPublicationDate.slice(0, 4) : null);
   return {
-    pmid: r.pmid || null, pmcid: r.pmcid || null, doi: r.doi || null, title: r.title.replace(/\.$/, ""),
+    pmid: r.pmid || null, pmcid: r.pmcid || null, doi: r.doi || null, title: r.title.replace(new RegExp("[.]$"), ""),
     authors: authors, firstAuthor: authors.length ? authors[0].split(" ")[0] : null,
     journal: (r.journalInfo && r.journalInfo.journal && r.journalInfo.journal.title) || r.journalTitle || null,
     year: year, abstract: r.abstractText || null, citedBy: (typeof r.citedByCount === "number") ? r.citedByCount : null,
@@ -766,12 +838,12 @@ Sources.openalex = {
 function parseOpenAlex(w) {
   if (!w || !w.title) return null;
   const authors = arr(w.authorships).map(function (a) { return a && a.author ? a.author.display_name : null; }).filter(Boolean);
-  const doi = w.doi ? w.doi.replace(/^https?:\/\/doi\.org\//, "") : null;
+  const doi = w.doi ? w.doi.replace(new RegExp("^https?://doi[.]org/"), "") : null;
   const ids = w.ids || {};
   let pmid = null, pmcid = null, openalexId = null;
-  if (ids.pmid) pmid = ids.pmid.replace(/^https?:\/\/pubmed\.ncbi\.nlm\.nih\.gov\//, "");
-  if (ids.pmcid) pmcid = ids.pmcid.replace(/^https?:\/\/www\.ncbi\.nlm\.nih\.gov\/pmc\/articles\//, "");
-  if (w.id) openalexId = w.id.replace(/^https?:\/\/openalex\.org\//, "");
+  if (ids.pmid) pmid = ids.pmid.replace(new RegExp("^https?://pubmed[.]ncbi[.]nlm[.]nih[.]gov/"), "");
+  if (ids.pmcid) pmcid = ids.pmcid.replace(new RegExp("^https?://www[.]ncbi[.]nlm[.]nih[.]gov/pmc/articles/"), "");
+  if (w.id) openalexId = w.id.replace(new RegExp("^https?://openalex[.]org/"), "");
   const journal = (w.primary_location && w.primary_location.source && w.primary_location.source.display_name) || (w.host_venue && w.host_venue.display_name) || null;
   const pdfUrl = (w.open_access && w.open_access.oa_url) || (w.primary_location && w.primary_location.pdf_url) || null;
   let abstract = null;
@@ -864,7 +936,7 @@ function parseSemanticScholar(p) {
    5. LITERATURE AGGREGATOR
    ============================================================ */
 const Lit = {
-  normTitle: function (t) { return String(t || "").toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120); },
+  normTitle: function (t) { return String(t || "").toLowerCase().replace(new RegExp("[^a-z0-9 ]", "g"), " ").replace(new RegExp("[ " + String.fromCharCode(9, 10, 13) + "]+", "g"), " ").trim().slice(0, 120); },
   key: function (a) {
     if (a.doi) return "doi:" + a.doi.toLowerCase();
     if (a.pmid) return "pmid:" + a.pmid;
@@ -942,48 +1014,75 @@ function buildVariantLabel(ref, alts) {
   return (ref || "?") + ">" + a.join(",");
 }
 
+function inferConsequence(ann, hgvsP) {
+    if (ann && ann.length > 0 && ann[0].consequence) {
+        return String(firstOf(ann[0].consequence)).split(",")[0];
+    }
+    if (!hgvsP) return null;
+    let p = String(hgvsP).toLowerCase();
+    if (p.includes('fs')) return "frameshift variant";
+    if (p.includes('*') || p.includes('ter')) return "nonsense variant";
+    if (p.includes('del')) return "deletion";
+    if (p.includes('dup')) return "duplication";
+    if (p.includes('ins')) return "insertion";
+    if (p.includes('=')) return "synonymous variant";
+    if (new RegExp("[a-z]{3}[0-9]+[a-z]{3}").test(p)) return "missense variant";
+    return null;
+}
+
 function normalizeMyVariantHit(hit, geneFallback) {
   const v = createVariant();
   v.sources.myvariant = true;
 
   const id = String(hit._id || "");
-  const mPos = /^(?:chr)?([0-9XYM]+):g\.(\d+)/i.exec(id);
+  const mPos = new RegExp("^(?:chr)?([0-9XYM]+):g[.]([0-9]+)", "i").exec(id);
   if (mPos) {
     v.chromosome = mPos[1];
     v.position = parseInt(mPos[2], 10);
   }
   
-  const mAllele = /([a-zA-Z]+)>([a-zA-Z]+)$/i.exec(id);
+  const mAllele = new RegExp("([a-zA-Z]+)>([a-zA-Z]+)$", "i").exec(id);
   if (mAllele) {
     v.ref = mAllele[1].toUpperCase();
     v.alt = mAllele[2].toUpperCase().split(",").filter(Boolean);
   } else {
-    const mComplex = /(del|ins|dup)([a-zA-Z]*)$/i.exec(id);
+    const mComplex = new RegExp("(del|ins|dup)([a-zA-Z]*)$", "i").exec(id);
     if (mComplex) {
       v.alt = [mComplex[1].toLowerCase() + (mComplex[2] ? " " + mComplex[2].toUpperCase() : "")];
       v.ref = "?";
     }
   }
 
-  const rs = firstOf(hit.dbsnp ? hit.dbsnp.rsid : null);
+  let dbsnp = Array.isArray(hit.dbsnp) ? hit.dbsnp[0] : hit.dbsnp;
+  const rs = firstOf(dbsnp ? dbsnp.rsid : null);
   if (rs) { v.rsid = rs; v.sources.dbsnp = true; }
 
-  const ann = arr(hit.snpeff ? hit.snpeff.ann : []);
+  let snpeffArr = hit.snpeff ? (hit.snpeff.ann || hit.snpeff) : [];
+  const ann = arr(snpeffArr);
+  let clinvar = Array.isArray(hit.clinvar) ? hit.clinvar[0] : hit.clinvar;
+  let dbnsfp = Array.isArray(hit.dbnsfp) ? hit.dbnsfp[0] : hit.dbnsfp;
+
   let singleGene = null;
-  if (hit.clinvar && hit.clinvar.gene && hit.clinvar.gene.symbol) singleGene = hit.clinvar.gene.symbol;
-  if (!singleGene && hit.dbnsfp && hit.dbnsfp.genename) singleGene = hit.dbnsfp.genename;
+  if (clinvar && clinvar.gene && clinvar.gene.symbol) singleGene = clinvar.gene.symbol;
+  if (!singleGene && dbnsfp && dbnsfp.genename) singleGene = dbnsfp.genename;
   if (!singleGene) {
     for (let i = 0; i < ann.length; i++) {
       if (ann[i] && ann[i].genename) { singleGene = ann[i].genename; break; }
     }
   }
-  if (!singleGene && geneFallback) singleGene = geneFallback;
+  if (!singleGene && geneFallback && geneFallback !== "Unknown") singleGene = geneFallback;
   v.gene = normalizeGene(singleGene);
 
-  const rcvs = arr(hit.clinvar ? hit.clinvar.rcv : []);
+  let rcvs = [];
+  if (clinvar && clinvar.rcv) {
+     rcvs = arr(clinvar.rcv);
+  } else if (clinvar) {
+     rcvs = [clinvar];
+  }
+
   if (rcvs.length > 0) {
     v.sources.clinvar = true;
-    v.clinvarId = firstOf(hit.clinvar ? hit.clinvar.variant_id : null);
+    v.clinvarId = firstOf(clinvar ? clinvar.variant_id : null);
     const sigList = [], condList = [], inhList = [], revList = [];
     for (let i = 0; i < rcvs.length; i++) {
       const r = rcvs[i];
@@ -1003,13 +1102,12 @@ function normalizeMyVariantHit(hit, geneFallback) {
     v.clinical.reviewStatus = firstOf(revList);
   }
 
-  // EXTRAÇÃO DE DADOS PHARMGKB
-  if (hit.pharmgkb) {
-    const pgkb = hit.pharmgkb;
+  let pharmgkb = Array.isArray(hit.pharmgkb) ? hit.pharmgkb[0] : hit.pharmgkb;
+  if (pharmgkb) {
     v.sources.pharmgkb = true;
     let pgkConds = [];
-    if (pgkb.associated_toxicity) pgkConds.push("PharmGKB Toxicity");
-    if (pgkb.chemicals) pgkConds.push("PharmGKB Drug Interaction");
+    if (pharmgkb.associated_toxicity) pgkConds.push("PharmGKB Toxicity");
+    if (pharmgkb.chemicals) pgkConds.push("PharmGKB Drug Interaction");
     if (pgkConds.length > 0) {
       if (v.clinical.condition && v.clinical.condition !== "Not provided") {
         v.clinical.condition += " / " + pgkConds.join(" / ");
@@ -1022,24 +1120,22 @@ function normalizeMyVariantHit(hit, geneFallback) {
     }
   }
 
-  if (ann.length > 0) {
-    const a = ann[0];
-    if (a) {
-      v.consequence.consequence = firstOf(a.consequence);
-      v.consequence.impact = firstOf(a.impact);
-      v.consequence.transcript = firstOf(a.feature_id);
-    }
-  }
-
   const hgvsC = [];
-  if (hit.dbnsfp) hgvsC.push(hit.dbnsfp.hgvsc);
+  if (dbnsfp) hgvsC.push(dbnsfp.hgvsc);
   for (let i = 0; i < ann.length; i++) { if (ann[i]) hgvsC.push(ann[i].hgvsc); }
   v.hgvs.coding = firstOf(hgvsC);
 
   const hgvsP = [];
-  if (hit.dbnsfp) hgvsP.push(hit.dbnsfp.hgvsp);
+  if (dbnsfp) hgvsP.push(dbnsfp.hgvsp);
   for (let i = 0; i < ann.length; i++) { if (ann[i]) hgvsP.push(ann[i].hgvsp); }
   v.hgvs.protein = firstOf(hgvsP);
+
+  v.consequence.consequence = inferConsequence(ann, v.hgvs.protein);
+
+  if (ann.length > 0 && ann[0]) {
+    v.consequence.impact = firstOf(ann[0].impact);
+    v.consequence.transcript = firstOf(ann[0].feature_id);
+  }
 
   v.variant = buildVariantLabel(v.ref, v.alt);
   return v;
@@ -1074,7 +1170,7 @@ function mergeVariant(a, b) {
   if (!a.clinical.significance && b.clinical.significance) a.clinical.significance = b.clinical.significance;
   
   if (b.clinical.condition && (!a.clinical.condition || !a.clinical.condition.includes(b.clinical.condition))) {
-    a.clinical.condition = a.clinical.condition && a.clinical.condition !== "Not provided" ? b.clinical.condition + " / " + a.clinical.condition : b.clinical.condition;
+    a.clinical.condition = a.clinical.condition && a.clinical.condition !== "Not provided" ? a.clinical.condition + " / " + b.clinical.condition : b.clinical.condition;
   }
   
   if (!a.clinical.inheritance.length && b.clinical.inheritance) {
@@ -1095,6 +1191,17 @@ function mergeVariant(a, b) {
   Object.keys(b.sources).forEach(function (k) {
     if (b.sources[k]) a.sources[k] = true;
   });
+  
+  if (b._originalCondition !== undefined && a._originalCondition === undefined) a._originalCondition = b._originalCondition;
+  if (b._originalLiterature !== undefined && a._originalLiterature === undefined) a._originalLiterature = b._originalLiterature;
+  if (b._displayCond !== undefined && a._displayCond === undefined) a._displayCond = b._displayCond;
+  if (b._deepData) {
+      if (!a._deepData) a._deepData = {};
+      Object.keys(b._deepData).forEach(function(k) {
+          a._deepData[k] = b._deepData[k];
+      });
+  }
+
   if (!a.variant) a.variant = buildVariantLabel(a.ref, a.alt);
   return a;
 }
@@ -1219,60 +1326,67 @@ function renderGeneSummary(info, fallbackSymbol) {
 
   const mim = info.MIM || "";
   const ensembl = (info.ensembl && info.ensembl.gene) ? info.ensembl.gene : (Array.isArray(info.ensembl) ? info.ensembl[0].gene : "");
-  const uniprot = (info.uniprot && info.uniprot['Swiss-Prot']) ? info.uniprot['Swiss-Prot'] : "";
+  const uniprot = (info.uniprot && info.uniprot["Swiss-Prot"]) ? info.uniprot["Swiss-Prot"] : "";
   const hgnc = info.HGNC || "";
 
   const linksGroup = $("#gsLinksGroup");
-  const createBadge = (label, url, color) => {
+  const createBadge = function(label, url, color) {
     if (!url) return '';
-    return `<a href="${url}" target="_blank" rel="noopener noreferrer" 
-               style="background:rgba(255,255,255,0.03); border:1px solid ${color}66; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:600; color:${color}; text-decoration:none; transition:all 0.15s; white-space:nowrap; display:inline-flex; align-items:center; gap:4px;"
-               onmouseover="this.style.background='${color}22'; this.style.borderColor='${color}'"
-               onmouseout="this.style.background='rgba(255,255,255,0.03)'; this.style.borderColor='${color}66'">
-               ${label} <span style="font-size:9px; opacity:0.8;">↗</span>
-            </a>`;
+    return '<a href="' + url + '" target="_blank" rel="noopener noreferrer" style="background:rgba(255,255,255,0.03); border:1px solid ' + color + '66; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:600; color:' + color + '; text-decoration:none; transition:all 0.15s; white-space:nowrap; display:inline-flex; align-items:center; gap:4px;" onmouseover="this.style.background=' + "'" + color + "22'; this.style.borderColor='" + color + "'" + '" onmouseout="this.style.background=' + "'rgba(255,255,255,0.03)'; this.style.borderColor='" + color + "66'" + '">' + label + ' <span style="font-size:9px; opacity:0.8;">&#8599;</span></a>';
   };
 
   const clinicalLinks = [
-    createBadge('GeneCards', `https://www.genecards.org/cgi-bin/carddisp.pl?gene=${symbol}`, '#93c5fd'),
-    mim ? createBadge(`OMIM: ${mim}`, `https://omim.org/entry/${mim}`, '#fcd34d') : '',
-    createBadge('PanelApp', `https://panelapp.genomicsengland.co.uk/panels/entities/${symbol}`, '#86efac'),
-    createBadge('ClinGen', `https://search.clinicalgenome.org/kb/genes?page=1&size=25&search=${symbol}`, '#fca5a5'),
-    createBadge('DECIPHER', `https://www.deciphergenomics.org/gene/${symbol}/overview`, '#c4b5fd'),
-    createBadge('Orphanet', `https://www.orpha.net/consor/cgi-bin/Disease_Search_Simple.php?lng=EN&diseaseGroup=${symbol}`, '#f9a8d4'),
-    createBadge('The GenCC', hgnc ? `https://search.thegencc.org/genes/HGNC:${hgnc}` : `https://search.thegencc.org/genes?search=${symbol}`, '#2dd4bf')
+    createBadge('GeneCards', "https://www.genecards.org/cgi-bin/carddisp.pl?gene=" + symbol, '#93c5fd'),
+    mim ? createBadge('OMIM', "https://omim.org/entry/" + mim, '#fcd34d') : '',
+    createBadge('ClinGen', "https://search.clinicalgenome.org/kb/genes?page=1&size=25&search=" + symbol, '#fca5a5'),
+    createBadge('PanelApp UK', "https://panelapp.genomicsengland.co.uk/panels/entities/" + symbol, '#86efac'),
+    createBadge('PanelApp Aus', "https://panelapp.agha.umccr.org/panels/entities/" + symbol, '#86efac'),
+    createBadge('The GenCC', hgnc ? "https://search.thegencc.org/genes/HGNC:" + hgnc : "https://search.thegencc.org/genes?search=" + symbol, '#2dd4bf'),
+    createBadge('DECIPHER', "https://www.deciphergenomics.org/gene/" + symbol + "/overview", '#c4b5fd'),
+    createBadge('Orphanet', "https://www.orpha.net/consor/cgi-bin/Disease_Search_Simple.php?lng=EN&diseaseGroup=" + symbol, '#f9a8d4'),
+    createBadge('GeneReviews', "https://www.ncbi.nlm.nih.gov/books/NBK1116/?term=" + symbol, '#cbd5e1'),
+    createBadge('Gene2Phenotype', "https://www.ebi.ac.uk/gene2phenotype/search?panel=ALL&search_term=" + symbol, '#f87171')
   ].filter(Boolean).join('');
 
   const variantLinks = [
-    createBadge('Varsome', `https://varsome.com/gene/${symbol}`, '#6ee7b7'),
-    createBadge('Franklin (Genoox)', `https://franklin.genoox.com/clinical-db/gene/${symbol}`, '#93c5fd'),
-    createBadge('gnomAD (v4)', `https://gnomad.broadinstitute.org/gene/${symbol}?dataset=gnomad_r4`, '#fdba74'),
-    createBadge('ClinVar', `https://www.ncbi.nlm.nih.gov/clinvar/?term=${symbol}[gene]`, '#a78bfa'),
-    createBadge('dbSNP', `https://www.ncbi.nlm.nih.gov/snp/?term=${symbol}`, '#cbd5e1')
+    createBadge('ClinVar', "https://www.ncbi.nlm.nih.gov/clinvar/?term=" + symbol + "[gene]", '#a78bfa'),
+    createBadge('dbSNP', "https://www.ncbi.nlm.nih.gov/snp/?term=" + symbol, '#cbd5e1'),
+    createBadge('gnomAD', "https://gnomad.broadinstitute.org/gene/" + symbol + "?dataset=gnomad_r4", '#fdba74'),
+    createBadge('Ensembl Var', ensembl ? "https://www.ensembl.org/Homo_sapiens/Gene/Variation_Gene/Table?g=" + ensembl : '', '#fca5a5'),
+    createBadge('Varsome', "https://varsome.com/gene/" + symbol, '#6ee7b7'),
+    createBadge('Franklin (Genoox)', "https://franklin.genoox.com/clinical-db/gene/" + symbol, '#93c5fd'),
+    createBadge('LOVD', "https://databases.lovd.nl/shared/genes/" + symbol, '#fcd34d'),
+    createBadge('ClinGen Allele', "https://reg.clinicalgenome.org/redmine/projects/registry/genboree_registry/by_gene?gene=" + symbol, '#f87171')
+  ].filter(Boolean).join('');
+
+  const pharmLinks = [
+    createBadge('PharmGKB', "https://www.pharmgkb.org/gene/" + symbol, '#f472b6'),
+    createBadge('CPIC', "https://cpicpgx.org/genes-drugs/", '#f9a8d4'),
+    createBadge('PharmVar', "https://www.pharmvar.org/gene/" + symbol, '#fca5a5')
   ].filter(Boolean).join('');
 
   const bioLinks = [
-    ensembl ? createBadge(`Ensembl: ${ensembl}`, `https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=${ensembl}`, '#fcd34d') : '',
-    uniprot ? createBadge(`UniProt: ${uniprot}`, `https://www.uniprot.org/uniprotkb/${uniprot}/entry`, '#86efac') : '',
-    createBadge('UCSC Browser', `https://genome.ucsc.edu/cgi-bin/hgTracks?db=hg38&singleSearch=knownCanonical&position=${symbol}`, '#93c5fd'),
-    createBadge('NCBI Gene', `https://www.ncbi.nlm.nih.gov/gene/?term=${symbol}`, '#cbd5e1'),
-    createBadge('MARRVEL', `http://marrvel.org/search/gene/${symbol}`, '#fca5a5')
+    ensembl ? createBadge('Ensembl', "https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=" + ensembl, '#fcd34d') : '',
+    createBadge('NCBI Gene', "https://www.ncbi.nlm.nih.gov/gene/?term=" + symbol, '#cbd5e1'),
+    createBadge('UCSC Browser', "https://genome.ucsc.edu/cgi-bin/hgTracks?db=hg38&singleSearch=knownCanonical&position=" + symbol, '#93c5fd'),
+    uniprot ? createBadge('UniProt', "https://www.uniprot.org/uniprotkb/" + uniprot + "/entry", '#86efac') : '',
+    createBadge('MARRVEL', "http://marrvel.org/search/gene/" + symbol, '#fca5a5'),
+    createBadge('GWAS Catalog', "https://www.ebi.ac.uk/gwas/genes/" + symbol, '#c4b5fd'),
+    createBadge('HPO', "https://hpo.jax.org/app/browse/gene/" + (hgnc || symbol), '#2dd4bf')
   ].filter(Boolean).join('');
 
-  linksGroup.innerHTML = `
-    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-      <span style="color:var(--muted); font-size:10px; width:140px; text-transform:uppercase; font-weight:700; letter-spacing:0.05em;"><i class="fa-solid fa-notes-medical" style="margin-right:4px;"></i> Clínica & Doenças</span> 
-      <div style="display:flex; gap:6px; flex-wrap:wrap; flex:1;">${clinicalLinks}</div>
-    </div>
-    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-      <span style="color:var(--muted); font-size:10px; width:140px; text-transform:uppercase; font-weight:700; letter-spacing:0.05em;"><i class="fa-solid fa-dna" style="margin-right:4px;"></i> Anotação de Variantes</span> 
-      <div style="display:flex; gap:6px; flex-wrap:wrap; flex:1;">${variantLinks}</div>
-    </div>
-    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-      <span style="color:var(--muted); font-size:10px; width:140px; text-transform:uppercase; font-weight:700; letter-spacing:0.05em;"><i class="fa-solid fa-microscope" style="margin-right:4px;"></i> Biologia Genômica</span> 
-      <div style="display:flex; gap:6px; flex-wrap:wrap; flex:1;">${bioLinks}</div>
-    </div>
-  `;
+  linksGroup.innerHTML = '<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">' +
+      '<span style="color:var(--muted); font-size:10px; width:140px; text-transform:uppercase; font-weight:700; letter-spacing:0.05em;"><i class="fa-solid fa-notes-medical" style="margin-right:4px;"></i> Clínica & Doenças</span>' + 
+      '<div style="display:flex; gap:6px; flex-wrap:wrap; flex:1;">' + clinicalLinks + '</div></div>' +
+    '<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">' +
+      '<span style="color:var(--muted); font-size:10px; width:140px; text-transform:uppercase; font-weight:700; letter-spacing:0.05em;"><i class="fa-solid fa-dna" style="margin-right:4px;"></i> Anotação & Variantes</span>' + 
+      '<div style="display:flex; gap:6px; flex-wrap:wrap; flex:1;">' + variantLinks + '</div></div>' +
+    '<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">' +
+      '<span style="color:var(--muted); font-size:10px; width:140px; text-transform:uppercase; font-weight:700; letter-spacing:0.05em;"><i class="fa-solid fa-capsules" style="margin-right:4px;"></i> Farmacogenética</span>' + 
+      '<div style="display:flex; gap:6px; flex-wrap:wrap; flex:1;">' + pharmLinks + '</div></div>' +
+    '<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">' +
+      '<span style="color:var(--muted); font-size:10px; width:140px; text-transform:uppercase; font-weight:700; letter-spacing:0.05em;"><i class="fa-solid fa-microscope" style="margin-right:4px;"></i> Biologia & Fenótipo</span>' + 
+      '<div style="display:flex; gap:6px; flex-wrap:wrap; flex:1;">' + bioLinks + '</div></div>';
 }
 
 function setStep(n) {
@@ -1322,6 +1436,135 @@ function renderDashboard() {
   }
 }
 
+// Lógica Carrinho
+function toggleCart(v) {
+  const index = STATE.cart.findIndex(function(c) { return c._uid === v._uid; });
+  if (index === -1) {
+    STATE.cart.push(v);
+    showToast("Variante salva na sua lista!", "success");
+  } else {
+    STATE.cart.splice(index, 1);
+    showToast("Variante removida da lista.", "info");
+  }
+  updateCartUI();
+  renderTable(); 
+}
+
+function updateCartUI() {
+  const countEl = $("#cartCount");
+  if (countEl) countEl.textContent = STATE.cart.length;
+}
+
+function renderCartTable() {
+  const tbody = $("#cartTbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+  
+  if (STATE.cart.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding: 40px; color: var(--dim);">Sua lista está vazia. Adicione variantes clicando no botão "+" na tabela principal.</td></tr>';
+    return;
+  }
+
+  STATE.cart.forEach(function(v) {
+    const tr = document.createElement("tr");
+
+    let variantStr = "—";
+    if (v.ref && v.alt && v.alt.length > 0 && v.chromosome && v.position) {
+       variantStr = esc(v.ref) + ">" + esc(v.alt.join(',')) + " Chromosome:" + esc(v.chromosome) + ":" + fmtNum(v.position).replace(new RegExp("[.]", "g"), '') + " (" + esc(v.assembly) + ")";
+    } else if (v.variant) {
+       variantStr = esc(v.variant);
+    }
+    
+    let srcArr = [];
+    if (v.sources.clinvar) srcArr.push('ClinVar');
+    if (v.sources.dbsnp) srcArr.push('dbSNP');
+    if (v.sources.pharmgkb) srcArr.push('PharmGKB');
+
+    let consStr = v.consequence.consequence ? esc(String(v.consequence.consequence).replace(new RegExp("_", "g"), ' ')) : 'NOT FOUND';
+    let sigStr = v.clinical.significance || 'Not provided';
+    let activeLit = v._displayLit || v.literature || [];
+    let numArts = activeLit.length;
+    let currentConditionDisplay = v._displayCond || v.clinical.condition || '—';
+    
+    tr.innerHTML = '<td style="text-align:center;">' +
+        '<button class="add-btn saved" title="Remover da lista" onclick="removeCartItem(' + "'" + v._uid + "'" + ')"><i class="fa-solid fa-minus"></i></button></td>' +
+      '<td class="mono" style="font-weight:600;">' + esc(normalizeGene(v.gene)) + '</td>' +
+      '<td class="mono">' + variantStr + '</td>' +
+      '<td class="mono">' + (v.chromosome ? esc(v.chromosome) : "—") + '</td>' +
+      '<td class="mono">' + (v.position != null ? fmtNum(v.position) : "—") + '</td>' +
+      '<td class="mono">' + esc(v.ref || "?") + '</td>' +
+      '<td class="mono">' + (v.alt && v.alt.length ? esc(v.alt.join(",")) : "?") + '</td>' +
+      '<td class="mono" style="color:var(--blue);">' + (v.rsid || "—") + '</td>' +
+      '<td class="col-cons">' + consStr + '</td>' +
+      '<td style="font-size: 12.5px; color: var(--txt-2);">' + (v.clinical.inheritance && v.clinical.inheritance.length ? esc(v.clinical.inheritance.join(", ")) : "—") + '</td>' +
+      '<td class="col-sig" style="font-size: 12.5px;">' + sigStr + '</td>' +
+      '<td style="font-size: 12.5px;">' + esc(currentConditionDisplay) + '</td>' +
+      '<td style="font-size: 11px; color: var(--muted);">' + (srcArr.join(", ") || "—") + '</td>' +
+      '<td style="text-align:center;">' + numArts + ' art(s)</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+window.removeCartItem = function(uid) {
+  STATE.cart = STATE.cart.filter(function(v) { return v._uid !== uid; });
+  updateCartUI();
+  renderCartTable();
+  renderTable(); 
+}
+
+function exportToCSV() {
+  if (STATE.cart.length === 0) return showToast("Sua lista está vazia.", "warning");
+  
+  const headers = ["Gene", "Variant", "Chr", "Position", "Ref", "Alt", "rsID", "Protein Consequence", "Inheritance", "Clinical Significance", "Condition", "Data Sources", "Articles (PMID)"];
+  const worksheetData = [headers];
+  
+  STATE.cart.forEach(function(v) {
+    let variantStr = v.ref && v.alt.length > 0 ? v.ref + ">" + v.alt.join(',') + " Chromosome:" + v.chromosome + ":" + v.position + " (" + v.assembly + ")" : (v.variant || "");
+    let srcArr = [];
+    if (v.sources.clinvar) srcArr.push('ClinVar');
+    if (v.sources.dbsnp) srcArr.push('dbSNP');
+    if (v.sources.pharmgkb) srcArr.push('PharmGKB');
+
+    let consStr = v.consequence.consequence ? String(v.consequence.consequence).replace(new RegExp("_", "g"), ' ') : 'NOT FOUND';
+    let cStr = v.hgvs.coding ? String(v.hgvs.coding).split(',')[0] : '';
+    if (cStr && cStr.indexOf('c.') === -1 && cStr.indexOf('m.') === -1 && cStr.indexOf('g.') === -1) cStr = 'c.' + cStr;
+    let pStr = v.hgvs.protein ? String(v.hgvs.protein).split(',')[0] : '';
+    if (pStr && pStr.indexOf('p.') === -1) pStr = 'p.' + pStr;
+
+    let changeArr = [];
+    if (cStr) changeArr.push(cStr);
+    if (pStr) changeArr.push('(' + pStr + ')');
+    if (changeArr.length > 0) {
+        consStr += " " + changeArr.join(" ");
+    }
+
+    let activeLit = v._displayLit || v.literature || [];
+    let activeCond = v._displayCond || v.clinical.condition || "Not provided";
+    let articles = activeLit.map(function(a) { return a.title || a.pmid || ''; }).join(" | ");
+
+    worksheetData.push([
+      normalizeGene(v.gene) || "",
+      variantStr,
+      v.chromosome || "",
+      v.position || "",
+      v.ref || "",
+      v.alt && v.alt.length ? v.alt.join(",") : "",
+      v.rsid || "",
+      consStr,
+      v.clinical.inheritance ? v.clinical.inheritance.join(", ") : "",
+      v.clinical.significance || "Not provided",
+      activeCond,
+      srcArr.join(", "),
+      articles
+    ]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Saved Variants");
+  XLSX.writeFile(wb, "LPT_Saved_Variants.xlsx");
+}
+
 function readFilters() {
   STATE.filters.gene = val("#fGene").trim();
   STATE.filters.chromosome = val("#fChromosome");
@@ -1339,15 +1582,38 @@ function applyFilters() {
     readFilters();
     const f = STATE.filters;
     const q = STATE.quickSearch.trim().toLowerCase();
+    
+    // RESTAURA O ESTADO ORIGINAL ANTES DE APLICAR NOVOS FILTROS DE LITERATURA
+    STATE.variants.forEach(function(v) {
+      if (v._originalCondition !== undefined) {
+         v.clinical.condition = v._originalCondition;
+      }
+    });
+
     const focus = f.focus || [];
-    const focusLower = focus.map(function (t) { return String(t).toLowerCase(); });
+    const focusLabel = focus.length > 0 ? focus.join(" + ") : null;
 
     const filtered = [];
     for (let i = 0; i < STATE.variants.length; i++) {
       const v = STATE.variants[i];
       let pass = true;
+      let isDeepMatch = false; // FLAG VIP para variantes que bateram com o filtro profundo
 
-      if (f.strictComplete) {
+      // Overlay system for Deep Literature Search
+      let currentLit = [].concat(v.literature || []);
+      let currentCond = v.clinical.condition || "Not provided";
+
+      if (focusLabel) {
+         if (v._deepData && v._deepData[focusLabel] && v._deepData[focusLabel].lit && v._deepData[focusLabel].lit.length > 0) {
+             currentLit = deduplicateArticles(currentLit.concat(v._deepData[focusLabel].lit));
+             currentCond = appendAssoc(currentCond, focusLabel);
+             isDeepMatch = true; 
+         } else {
+             pass = false; // Se o botão está ligado e essa variante não tem a literatura, esconde ela.
+         }
+      }
+
+      if (pass && f.strictComplete) {
         const isComplete = v.gene && v.gene !== "—"
           && v.variant && v.variant !== "—"
           && v.chromosome && v.position != null
@@ -1358,7 +1624,9 @@ function applyFilters() {
         if (!isComplete) pass = false;
       }
 
-      if (pass && f.hasLiterature && (!v.literature || v.literature.length === 0)) pass = false;
+      // Se a flag "Has Literature" está ligada, a variante PRECISA ter artigos.
+      // Se for uma isDeepMatch, currentLit tem itens, então ela passa.
+      if (pass && f.hasLiterature && currentLit.length === 0) pass = false;
       if (pass && f.hasRsid && (!v.rsid || String(v.rsid).indexOf("rs") !== 0)) pass = false;
 
       if (pass && f.gene && String(v.gene || "").toLowerCase().indexOf(f.gene.toLowerCase()) === -1) pass = false;
@@ -1378,35 +1646,28 @@ function applyFilters() {
         if (!hasInh) pass = false;
       }
 
-      if (pass && f.condition && String(v.clinical.condition || "").toLowerCase().indexOf(f.condition.toLowerCase()) === -1) pass = false;
-
-      if (pass && focusLower.length > 0) {
-        const hayFocus = [
-          v.gene, v.variant, v.rsid, v.chromosome, v.position,
-          v.clinical.condition, v.clinical.significance
-        ].join(" ").toLowerCase();
-        let matched = false;
-        for (let w = 0; w < focusLower.length; w++) {
-          if (hayFocus.indexOf(focusLower[w]) !== -1) { matched = true; break; }
-        }
-        if (!matched) pass = false;
-      }
+      if (pass && f.condition && String(currentCond || "").toLowerCase().indexOf(f.condition.toLowerCase()) === -1) pass = false;
 
       if (pass && q) {
-        const terms = q.split(/\s+/).filter(Boolean);
-        const lits = arr(v.literature).map(function (a) {
+        const terms = q.split(new RegExp("[ \t\n\r]+")).filter(Boolean);
+        const lits = arr(currentLit).map(function (a) {
           return (a.firstAuthor || "") + " " + (a.year || "") + " " + (a.title || "");
         }).join(" ");
         const hay = [
           v.gene, v.variant, v.rsid, v.chromosome, v.position,
-          v.clinical.condition, v.clinical.significance, lits
+          currentCond, v.clinical.significance, lits
         ].join(" ").toLowerCase();
         for (let w = 0; w < terms.length; w++) {
           if (hay.indexOf(terms[w]) === -1) { pass = false; break; }
         }
       }
 
-      if (pass) filtered.push(v);
+      // Se passou por todas as barreiras, aplicamos o overlay virtual e exibimos!
+      if (pass || (focusLabel && isDeepMatch && f.hasLiterature && f.strictComplete === false && !f.gene && !f.chromosome && !f.rsid && !f.significance && !f.inheritance && !f.condition && !q)) {
+          v._displayCond = currentCond;
+          v._displayLit = currentLit;
+          filtered.push(v);
+      }
     }
 
     STATE.filtered = filtered;
@@ -1505,14 +1766,15 @@ function significanceClass(sig) {
   if (s.indexOf("pharmgkb") !== -1 || s.indexOf("pharmacogenetic") !== -1) return "pharmgkb";
   return "notprovided";
 }
+
 function significanceIcon(sig) {
   const s = String(sig || "").toLowerCase();
-  if (s.indexOf("pharmgkb") !== -1 || s.indexOf("pharmacogenetic") !== -1) return "💊";
-  if (s.indexOf("conflicting") !== -1) return "◈";
-  if (s.indexOf("likely pathogenic") !== -1 || s.indexOf("pathogenic") !== -1) return "▲";
-  if (s.indexOf("likely benign") !== -1 || s.indexOf("benign") !== -1) return "▼";
+  if (s.indexOf("pharmgkb") !== -1 || s.indexOf("pharmacogenetic") !== -1) return "\uD83D\uDC8A";
+  if (s.indexOf("conflicting") !== -1) return "\u25C8";
+  if (s.indexOf("likely pathogenic") !== -1 || s.indexOf("pathogenic") !== -1) return "\u25B2";
+  if (s.indexOf("likely benign") !== -1 || s.indexOf("benign") !== -1) return "\u25BC";
   if (s.indexOf("uncertain") !== -1 || s.indexOf("vus") !== -1) return "?";
-  return "·";
+  return "\u00B7";
 }
 
 function significanceRank(sig) {
@@ -1523,7 +1785,7 @@ function significanceRank(sig) {
   if (s.indexOf("likely pathogenic") !== -1) return 2;
   if (s.indexOf("pathogenic") !== -1) return 1;
   if (s.indexOf("uncertain") !== -1 || s.indexOf("vus") !== -1) return 5;
-  if (s.indexOf("likely benign") !== -1) return 6;
+  if (s.indexOf("likely benign") !== -1) return 5;
   if (s.indexOf("benign") !== -1) return 7;
   return 9;
 }
@@ -1577,12 +1839,12 @@ function renderTable() {
   if (tc) tc.textContent = fmtNum(STATE.filtered.length) + " of " + fmtNum(STATE.variants.length);
 
   if (STATE.variants.length === 0) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="11"><div class="empty-state"><p>No results. Perform a search.</p></div></td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="14"><div class="empty-state"><p>No results. Perform a search.</p></div></td></tr>';
     renderPagination();
     return;
   }
   if (STATE.filtered.length === 0) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="11"><div class="empty-state"><p>No variants match current filters. Try unchecking \'Complete Info Only\' or clicking \'Clear\'.</p></div></td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="14"><div class="empty-state"><p>No variants match current filters. Try unchecking Complete Info Only or clicking Clear.</p></div></td></tr>';
     renderPagination();
     return;
   }
@@ -1597,22 +1859,22 @@ function renderTable() {
     tr.setAttribute("data-key", key);
     if (STATE.selectedKey === key) tr.classList.add("selected");
 
+    const isSaved = STATE.cart.some(function(c) { return c._uid === v._uid; });
+    const cartBtnHTML = '<button class="add-btn ' + (isSaved ? 'saved' : '') + '" title="' + (isSaved ? 'Remover' : 'Salvar Variante') + '" data-uid="' + v._uid + '"><i class="fa-solid ' + (isSaved ? 'fa-check' : 'fa-plus') + '"></i></button>';
+
     let rsidHTML = '<span class="na">—</span>';
     if (v.rsid && String(v.rsid).indexOf("rs") === 0) {
       rsidHTML = '<a href="https://www.ncbi.nlm.nih.gov/snp/' + encodeURIComponent(v.rsid) +
         '" target="_blank" rel="noopener noreferrer" class="rsid-link" data-role="rsid">' +
         esc(v.rsid) +
-        ' <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:10px;height:10px"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg></a>';
+        ' &#8599;</a>';
     } else if (v.rsid) {
       rsidHTML = '<span class="text-gray-400" style="font-size:10px">' + esc(v.rsid) + '</span>';
     }
 
-    if (v.sources.pharmgkb) {
-      rsidHTML += '<div style="margin-top:4px;"><span style="background:rgba(244,114,182,0.15); color:#f472b6; font-size:9px; padding:2px 5px; border-radius:3px; font-weight:bold; letter-spacing:0.05em; border: 1px solid rgba(244,114,182,0.4);"><i class="fa-solid fa-capsules"></i> PharmGKB</span></div>';
-    }
-
     let litHTML;
-    const numArts = (v.literature && v.literature.length) ? v.literature.length : 0;
+    const currentLit = v._displayLit || v.literature || [];
+    const numArts = currentLit.length;
     if (numArts > 0) {
       litHTML = '<button class="lit-btn" data-role="lit">' + numArts +
         ' article' + (numArts > 1 ? 's' : '') + '</button>';
@@ -1622,7 +1884,7 @@ function renderTable() {
 
     let variantStr = '<span class="na">—</span>';
     if (v.ref && v.alt && v.alt.length > 0 && v.chromosome && v.position) {
-       variantStr = `${esc(v.ref)}>${esc(v.alt.join(','))} Chromosome:${esc(v.chromosome)}:${fmtNum(v.position).replace(/\./g, '')} (${esc(v.assembly)})`;
+       variantStr = esc(v.ref) + ">" + esc(v.alt.join(',')) + " Chromosome:" + esc(v.chromosome) + ":" + fmtNum(v.position).replace(new RegExp("[.]", "g"), '') + " (" + esc(v.assembly) + ")";
     } else if (v.variant) {
        variantStr = esc(v.variant);
     }
@@ -1634,16 +1896,46 @@ function renderTable() {
     let geneStr = normalizeGene(v.gene);
     let geneHTML = '<span class="na">—</span>';
     if (geneStr) {
-      geneHTML = `<a href="https://www.genecards.org/cgi-bin/carddisp.pl?gene=${esc(geneStr)}" target="_blank" rel="noopener noreferrer" style="color:var(--blue); font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:4px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="Ver no GeneCards">
-                    ${esc(geneStr)} 
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:10px;height:10px;opacity:0.7"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
-                  </a>`;
+      geneHTML = '<a href="https://www.genecards.org/cgi-bin/carddisp.pl?gene=' + esc(geneStr) + '" target="_blank" rel="noopener noreferrer" style="color:var(--blue); font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:4px;" onmouseover="this.style.textDecoration=' + "'underline'" + '" onmouseout="this.style.textDecoration=' + "'none'" + '" title="Ver no GeneCards">' + esc(geneStr) + ' &#8599;</a>';
     }
+
+    let consStr = v.consequence.consequence ? esc(String(v.consequence.consequence).replace(new RegExp("_", "g"), ' ')) : null;
+    let cStr = v.hgvs.coding ? esc(String(v.hgvs.coding).split(',')[0]) : null;
+    if (cStr && cStr.indexOf('c.') === -1 && cStr.indexOf('m.') === -1 && cStr.indexOf('g.') === -1) cStr = 'c.' + cStr;
+    let pStr = v.hgvs.protein ? esc(String(v.hgvs.protein).split(',')[0]) : null;
+    if (pStr && pStr.indexOf('p.') === -1) pStr = 'p.' + pStr;
+    
+    let consequenceHTML = '<div style="line-height:1.4;">';
+    if (consStr) {
+        consequenceHTML += '<div style="font-weight:700; color:var(--txt); text-transform:capitalize; font-size:12.5px;">' + consStr + '</div>';
+    }
+    if (cStr || pStr) {
+        consequenceHTML += '<div style="font-size:11.5px; color:var(--blue); font-family:var(--mono); margin-top:2px;">';
+        if (cStr) consequenceHTML += cStr;
+        if (cStr && pStr) consequenceHTML += '<br/>';
+        if (pStr) consequenceHTML += '(' + pStr + ')';
+        consequenceHTML += '</div>';
+    }
+    if (!consStr && !cStr && !pStr) {
+        consequenceHTML += '<span class="nf-badge">NOT FOUND</span>';
+    }
+    consequenceHTML += '</div>';
+
+    const sourceBadge = function(label, url, style) { return '<a href="' + url + '" target="_blank" rel="noopener noreferrer" data-role="source" title="Abrir ' + label + '" style="' + style + ';padding:2px 5px;border-radius:4px;font-size:9.5px;font-weight:600;white-space:nowrap;text-decoration:none;cursor:pointer;">' + label + ' ↗</a>'; };
+    const geneForLink = encodeURIComponent(normalizeGene(v.gene) || "");
+    let srcArr = [];
+    if (v.sources.clinvar) srcArr.push(sourceBadge("ClinVar", v.clinvarId ? "https://www.ncbi.nlm.nih.gov/clinvar/variation/" + encodeURIComponent(v.clinvarId) + "/" : "https://www.ncbi.nlm.nih.gov/clinvar/?term=" + geneForLink + "[gene]", "background:rgba(167,139,250,.15);color:#c4b5fd;border:1px solid rgba(167,139,250,.3)"));
+    if (v.sources.dbsnp && v.rsid) srcArr.push(sourceBadge("dbSNP", "https://www.ncbi.nlm.nih.gov/snp/" + encodeURIComponent(v.rsid), "background:rgba(148,163,184,.1);color:#cbd5e1;border:1px solid rgba(148,163,184,.3)"));
+    if (v.sources.pharmgkb) srcArr.push(sourceBadge("PharmGKB", "https://www.pharmgkb.org/gene/" + geneForLink, "background:rgba(244,114,182,.1);color:#f9a8d4;border:1px solid rgba(244,114,182,.3)"));
+    let sourceHTML = srcArr.length ? '<div style="display:flex;gap:4px;flex-wrap:wrap;max-width:145px;">' + srcArr.join('') + '</div>' : '<span class="na">—</span>';
 
     const sigClass = significanceClass(v.clinical.significance);
     const extraBadgeClass = sigClass === 'pharmgkb' ? ' pharm-badge' : '';
 
+    const currentConditionDisplay = v._displayCond || v.clinical.condition || '—';
+
     tr.innerHTML =
+      '<td style="text-align:center; vertical-align:middle;">' + cartBtnHTML + '</td>' +
       '<td class="mono">' + geneHTML + '</td>' +
       '<td class="mono" style="color:var(--blue); font-weight:600;">' + variantStr + '</td>' +
       '<td class="mono">' + (v.chromosome ? esc(v.chromosome) : "—") + '</td>' +
@@ -1651,17 +1943,23 @@ function renderTable() {
       '<td class="mono">' + esc(v.ref || "?") + '</td>' +
       '<td class="mono">' + (v.alt && v.alt.length ? esc(v.alt.join(",")) : "?") + '</td>' +
       '<td class="mono">' + rsidHTML + '</td>' +
+      '<td>' + consequenceHTML + '</td>' +
       '<td style="font-size: 12.5px; color: var(--txt-2);">' + inhStr + '</td>' +
       '<td><span class="badge ' + sigClass + extraBadgeClass + '">' +
         significanceIcon(v.clinical.significance) + ' ' +
         esc(v.clinical.significance || 'Not provided') + '</span></td>' +
-      '<td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12.5px;" title="' +
-        esc(v.clinical.condition || "") + '">' + esc(v.clinical.condition || '—') + '</td>' +
+      '<td style="max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12.5px;" title="' +
+        esc(currentConditionDisplay) + '">' + esc(currentConditionDisplay) + '</td>' +
+      '<td>' + sourceHTML + '</td>' +
       '<td style="text-align:center;">' + litHTML + '</td>';
 
     tr.addEventListener("click", function (e) {
       const t = e.target;
-      if (t.closest && t.closest("[data-role='rsid']")) return;
+      if (t.closest(".add-btn")) {
+        toggleCart(v);
+        return;
+      }
+      if (t.closest && (t.closest("[data-role='rsid']") || t.closest("[data-role='source']"))) return;
       if (t.tagName === "A" && t.href.includes("genecards.org")) return; 
       if (t.closest && t.closest("[data-role='lit']")) { openLiteratureModal(v); return; }
       if (t.closest && t.closest("[data-role='lit-search']")) { openLiteratureModal(v); return; }
@@ -1680,7 +1978,7 @@ function renderTable() {
     if (th.getAttribute("data-sort") === STATE.sort.key) {
       const s = document.createElement("span");
       s.className = "arrow";
-      s.textContent = STATE.sort.dir === "asc" ? "▲" : "▼";
+      s.textContent = STATE.sort.dir === "asc" ? "\u25B2" : "\u25BC";
       th.appendChild(s);
     }
   }
@@ -1731,16 +2029,22 @@ function openDrawer(v) {
   
   let variantStr = "—";
   if (v.ref && v.alt && v.alt.length > 0 && v.chromosome && v.position) {
-     variantStr = `${esc(v.ref)}>${esc(v.alt.join(','))} Chromosome:${esc(v.chromosome)}:${fmtNum(v.position).replace(/\./g, '')} (${esc(v.assembly)})`;
+     variantStr = esc(v.ref) + ">" + esc(v.alt.join(',')) + " Chromosome:" + esc(v.chromosome) + ":" + fmtNum(v.position).replace(new RegExp("[.]", "g"), '') + " (" + esc(v.assembly) + ")";
   } else if (v.variant) {
      variantStr = esc(v.variant);
   }
+
+  let sources = [];
+  if (v.sources.clinvar) sources.push("ClinVar");
+  if (v.sources.dbsnp) sources.push("dbSNP");
+  if (v.sources.pharmgkb) sources.push("PharmGKB");
+  let srcTxt = sources.length > 0 ? " · Data Sources: " + sources.join(", ") : "";
 
   const dt = $("#drawerTitle");
   if (dt) dt.textContent = (normalizeGene(v.gene) || "—") + " · " + variantStr;
   const ds = $("#drawerSub");
   if (ds) ds.textContent = (v.chromosome ? "chr" + v.chromosome : "—") +
-    ":" + (v.position != null ? fmtNum(v.position) : "—") + " · " + v.assembly;
+    ":" + (v.position != null ? fmtNum(v.position) : "—") + " · " + v.assembly + srcTxt;
 
   const body = $("#drawerBody");
   if (!body) return;
@@ -1776,6 +2080,7 @@ function openDrawer(v) {
   };
 
   section("Genomic information", function (s) {
+    let unav = createNfNode();
     kv(s, [
       ["Gene", normalizeGene(v.gene)],
       ["Chromosome", v.chromosome],
@@ -1784,16 +2089,42 @@ function openDrawer(v) {
       ["REF", v.ref],
       ["ALT", v.alt && v.alt.length ? v.alt.join(", ") : null],
       ["rsID", v.rsid],
-      ["HGVS genomic", v.hgvs.genomic],
-      ["HGVS coding", v.hgvs.coding],
-      ["HGVS protein", v.hgvs.protein]
+      ["HGVS genomic", v.hgvs.genomic ? v.hgvs.genomic : unav],
+      ["HGVS coding", v.hgvs.coding ? v.hgvs.coding : unav.cloneNode(true)]
     ]);
   });
+
+  section("Protein Effect & Consequence", function (s) {
+    let unav = createNfNode();
+    let consStr = v.consequence.consequence ? String(v.consequence.consequence).replace(new RegExp("_", "g"), ' ') : null;
+    let cStr = v.hgvs.coding ? String(v.hgvs.coding).split(',')[0] : null;
+    if (cStr && cStr.indexOf('c.') === -1 && cStr.indexOf('m.') === -1 && cStr.indexOf('g.') === -1) cStr = 'c.' + cStr;
+    let pStr = v.hgvs.protein ? String(v.hgvs.protein).split(',')[0] : null;
+    if (pStr && pStr.indexOf('p.') === -1) pStr = 'p.' + pStr;
+    
+    let combinedChange = [cStr, pStr ? '(' + pStr + ')' : null].filter(Boolean).join(" ");
+    
+    const renderStr = function(text) {
+        if (!text) return createNfNode();
+        let span = document.createElement("span");
+        span.textContent = text;
+        return span;
+    }
+
+    kv(s, [
+      ["Mutation Type", consStr ? renderStr(consStr) : unav.cloneNode(true)],
+      ["HGVS Change", combinedChange ? renderStr(combinedChange) : unav.cloneNode(true)],
+      ["Impact", v.consequence.impact ? renderStr(v.consequence.impact) : unav.cloneNode(true)],
+      ["Transcript", v.consequence.transcript ? renderStr(v.consequence.transcript) : unav.cloneNode(true)]
+    ]);
+  });
+
+  const currentConditionDisplay = v._displayCond || v.clinical.condition || '—';
 
   section("Clinical annotation", function (s) {
     kv(s, [
       ["Clinical significance", v.clinical.significance],
-      ["Condition", v.clinical.condition]
+      ["Condition", currentConditionDisplay]
     ]);
     const inhWrap = document.createElement("div");
     inhWrap.style.marginTop = "10px";
@@ -1824,26 +2155,27 @@ function openDrawer(v) {
     bar.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px";
     const btn = document.createElement("button");
     btn.className = "chip-btn";
-    btn.textContent = (v.literature && v.literature.length) ? "Open literature panel" : "Search literature";
+    const currentLit = v._displayLit || v.literature || [];
+    btn.textContent = (currentLit.length) ? "Open literature panel" : "Search literature";
     btn.style.cursor = "pointer";
     btn.addEventListener("click", function () { openLiteratureModal(v); });
     bar.appendChild(btn);
     s.appendChild(bar);
 
-    if (v.literature && v.literature.length) {
+    if (currentLit.length) {
       const sum = document.createElement("div");
       sum.style.cssText = "font-size:11.5px;color:var(--muted);margin-bottom:10px;font-family:var(--mono)";
       const srcNames = {};
-      v.literature.forEach(function (a) {
+      currentLit.forEach(function (a) {
         Object.keys(a.sources || {}).forEach(function (k) { if (a.sources[k]) srcNames[k] = true; });
       });
-      sum.textContent = v.literature.length + " artigos · fontes: " +
+      sum.textContent = currentLit.length + " artigos · fontes: " +
         Object.keys(srcNames).map(function (k) { return SOURCE_LABELS[k] || k; }).join(", ");
       s.appendChild(sum);
       const list = document.createElement("div");
       list.style.maxHeight = "480px";
       list.style.overflow = "auto";
-      v.literature.slice(0, 20).forEach(function (a) {
+      currentLit.slice(0, 20).forEach(function (a) {
         list.appendChild(buildArticleCard(a));
       });
       s.appendChild(list);
@@ -1851,7 +2183,7 @@ function openDrawer(v) {
       const p = document.createElement("div");
       p.className = "na";
       p.style.fontSize = "12.5px";
-      p.textContent = "Nenhum artigo carregado. Clique em “Search literature” para consultar PubMed, Europe PMC, OpenAlex, Crossref e Semantic Scholar.";
+      p.textContent = "Nenhum artigo carregado. Clique em “Search literature” para consultar as bases de dados.";
       s.appendChild(p);
     }
   });
@@ -2010,7 +2342,7 @@ function buildArticleCard(a) {
     x.className = "lit-idlink";
     x.href = a.openAccessPdf;
     x.target = "_blank"; x.rel = "noopener noreferrer";
-    x.textContent = "PDF ↗";
+    x.textContent = "PDF &#8599;";
     srcRow.appendChild(x);
   }
   if (srcRow.children.length) el.appendChild(srcRow);
@@ -2081,7 +2413,9 @@ function openLiteratureModal(v) {
   const searchMore = document.createElement("button");
   searchMore.className = "chip-btn";
   searchMore.style.cursor = "pointer";
-  searchMore.textContent = (v.literature && v.literature.length) ? "Refresh literature" : "Search literature";
+  
+  let currentLit = v._displayLit || v.literature || [];
+  searchMore.textContent = (currentLit.length) ? "Refresh literature" : "Search literature";
   head.appendChild(searchMore);
   wrap.appendChild(head);
 
@@ -2099,7 +2433,7 @@ function openLiteratureModal(v) {
 
   function renderSortedList() {
     listWrap.innerHTML = "";
-    let sorted = (v.literature || []).slice();
+    let sorted = currentLit.slice();
     if (currentSort === "citations") {
       sorted.sort(function (a, b) { return (b.citedBy || 0) - (a.citedBy || 0); });
     } else if (currentSort === "year") {
@@ -2148,15 +2482,20 @@ function openLiteratureModal(v) {
 
   searchMore.addEventListener("click", async function () {
     const ident = v.rsid || v.hgvs.coding || v.hgvs.genomic ||
-      ((v.chromosome && v.position) ? (v.chromosome + " " + v.position) : null);
-    if (!ident) { showToast("No identifier to search with.", "warning"); return; }
+      ((v.chromosome && v.position) ? (v.chromosome + " " + v.position) : null) || normalizeGene(v.gene);
+    if (!ident) { showToast("Não há identificador ou gene suficiente para pesquisar literatura.", "warning"); return; }
     searchMore.disabled = true;
-    searchMore.innerHTML = '<span class="spinner"></span> Searching…';
+    searchMore.innerHTML = '<span class="spinner"></span> Searching...';
     try {
-      const query = ident + (v.gene ? " " + normalizeGene(v.gene) : "");
+      const geneSymbol = normalizeGene(v.gene);
+      const query = geneSymbol && String(ident).toUpperCase() === geneSymbol.toUpperCase() ? geneSymbol : ident + (geneSymbol ? " " + geneSymbol : "");
       const found = await Lit.searchAll(query);
       if (found.length) {
         v.literature = deduplicateArticles((v.literature || []).concat(found));
+        // Guarda backup da literatura completa original se estivermos sobrepondo
+        if (v._originalLiterature === undefined) v._originalLiterature = [].concat(v.literature);
+        v._displayLit = v.literature;
+        currentLit = v._displayLit;
         renderSortedList();
         renderTable();
         showToast(found.length + " articles found.", "success");
@@ -2197,10 +2536,11 @@ async function fetchDbSnpVariants(rsids, gene, conditionLabel) {
         const v = normalizeMyVariantHit(hits[j], gene);
         const vGeneStr = String(v.gene || "").toUpperCase();
         const searchedGeneStr = String(gene || "").toUpperCase();
-        if (vGeneStr === searchedGeneStr) {
+        if (vGeneStr === searchedGeneStr || gene === "Unknown") {
           if ((!v.clinical.inheritance || v.clinical.inheritance.length === 0) && STATE.geneInheritance.length > 0) {
             v.clinical.inheritance = STATE.geneInheritance;
           }
+          if (v._originalCondition === undefined) v._originalCondition = v.clinical.condition;
           v.clinical.condition = appendAssoc(v.clinical.condition, conditionLabel);
           out.push(v);
         }
@@ -2264,7 +2604,7 @@ async function performDeepLiteratureSearch() {
     const displayLabel = focusLabels.join(" + ");
     const termsQuery = termEn.join(" OR ");
     
-    // FILTRO ONCOLÓGICO INTELIGENTE (Foca apenas no câncer)
+    // FILTRO ONCOLÓGICO INTELIGENTE
     const litQuery = STATE.gene + ' AND ("cancer" OR "leukemia" OR "leukaemia" OR "tumor" OR "ALL") AND (' + termsQuery + ')';
 
     const articles = await Lit.searchAll(litQuery);
@@ -2283,7 +2623,7 @@ async function performDeepLiteratureSearch() {
       }
     }
 
-    const rsRe = /\brs\d+\b/gi;
+    const rsRe = new RegExp("(^|[^a-zA-Z0-9_])rs[0-9]+([^a-zA-Z0-9_]|$)", "gi");
     const mentionedRsids = new Set();
     const articleRsids = new Map();
     for (let i = 0; i < articles.length; i++) {
@@ -2293,7 +2633,7 @@ async function performDeepLiteratureSearch() {
       if (matches) {
         const set = new Set();
         for (let j = 0; j < matches.length; j++) {
-          const rs = matches[j].toLowerCase();
+          const rs = matches[j].match(new RegExp("rs[0-9]+", "i"))[0].toLowerCase();
           set.add(rs);
           mentionedRsids.add(rs);
         }
@@ -2312,8 +2652,13 @@ async function performDeepLiteratureSearch() {
         return set && set.has(rsLower);
       });
       if (matching.length > 0) {
+        // Backup
+        if (v._originalLiterature === undefined) v._originalLiterature = [].concat(v.literature || []);
+        if (v._originalCondition === undefined) v._originalCondition = v.clinical.condition;
+        
         v.literature = deduplicateArticles((v.literature || []).concat(matching));
-        v.clinical.condition = appendAssoc(v.clinical.condition, displayLabel);
+        if (!v._deepData) v._deepData = {};
+        v._deepData[displayLabel] = { lit: matching };
         attachedCount++;
       }
     }
@@ -2332,12 +2677,17 @@ async function performDeepLiteratureSearch() {
       const newVars = await fetchDbSnpVariants(missingRsids, STATE.gene, displayLabel);
       for (let i = 0; i < newVars.length; i++) {
         const v = newVars[i];
+        if (v._originalCondition === undefined) v._originalCondition = v.clinical.condition;
+        if (v._originalLiterature === undefined) v._originalLiterature = [].concat(v.literature || []);
+        
         const rsLower = v.rsid.toLowerCase();
         const matching = articles.filter(function (a) {
           const set = articleRsids.get(Lit.key(a));
           return set && set.has(rsLower);
         });
         v.literature = matching.length > 0 ? matching : articles.slice();
+        if (!v._deepData) v._deepData = {};
+        v._deepData[displayLabel] = { lit: v.literature };
       }
       if (newVars.length > 0) {
         STATE.variants = deduplicateVariants(STATE.variants.concat(newVars));
@@ -2350,8 +2700,12 @@ async function performDeepLiteratureSearch() {
       for (let i = 0; i < STATE.variants.length; i++) {
         const v = STATE.variants[i];
         if (!v.rsid) continue;
+        if (v._originalLiterature === undefined) v._originalLiterature = [].concat(v.literature || []);
+        if (v._originalCondition === undefined) v._originalCondition = v.clinical.condition;
+        
         v.literature = deduplicateArticles((v.literature || []).concat(articles));
-        v.clinical.condition = appendAssoc(v.clinical.condition, displayLabel);
+        if (!v._deepData) v._deepData = {};
+        v._deepData[displayLabel] = { lit: articles.slice() };
         attachedCount++;
       }
     }
@@ -2388,7 +2742,8 @@ async function performDeepLiteratureSearch() {
 function detectQueryType(q) {
   const s = q.trim();
   if (!s) return null;
-  if (/^rs\d+$/i.test(s)) return "rsid";
+  if (new RegExp("^rs[0-9]+$", "i").test(s)) return "rsid";
+  if (new RegExp("^HLA-", "i").test(s) || new RegExp("^[a-zA-Z][0-9]+[a-zA-Z*]$", "i").test(s) || s.includes('*') || s.includes(':')) return "text";
   return "gene";
 }
 
@@ -2397,15 +2752,17 @@ async function performSearch(rawQuery) {
   if (!q) return;
   STATE.query = q;
 
-  const qType = detectQueryType(q);
-
   STATE.variants = [];
   STATE.filtered = [];
   closeDrawer();
   setStep(0);
 
   const sb = $("#searchBtn");
-  if (sb) { sb.disabled = true; sb.innerHTML = '<span class="spinner"></span> SEARCHING'; }
+  if (sb) { sb.disabled = true; sb.innerHTML = '<span class="spinner"></span> SEARCHING...'; }
+  const notFoundPanel = $("#notFoundPanel");
+  const notFoundList = $("#notFoundList");
+  if (notFoundPanel) notFoundPanel.style.display = 'none';
+  if (notFoundList) notFoundList.innerHTML = '';
 
   try {
     setStep(1);
@@ -2413,89 +2770,107 @@ async function performSearch(rawQuery) {
     const gsCard = $("#geneSummaryCard");
     if (gsCard) gsCard.style.display = "none";
 
-    const cached = Cache.get(q, STATE.assembly);
-    if (cached && cached.variants && cached.variants.length > 0) {
-      STATE.gene = cached.gene || q;
-      STATE.variants = cached.variants;
-      
-      const [geneInfo, panelAppInh] = await Promise.all([
-        Sources.mygene.searchGene(STATE.gene).catch(function () { return null; }),
-        Sources.panelapp.searchGene(STATE.gene).catch(function () { return []; })
-      ]);
-      STATE.geneInheritance = panelAppInh || [];
-      if (geneInfo) renderGeneSummary(geneInfo, STATE.gene);
+    const terms = q.split(new RegExp("[ \t\n\r,;]+")).filter(Boolean);
+    let allRaw = [];
+    let firstGeneInfo = null;
+    let panelAppInhMap = {};
+    let failedQueries = [];
 
-      showToast("Results loaded from cache", "success");
-    } else {
-      
-      let mvRes = null;
-      let geneInfo = null;
-      let panelAppInh = [];
-      
-      if (qType === "rsid") {
-        mvRes = await Sources.myvariant.searchRsid(q, STATE.assembly).catch(() => null);
-        STATE.gene = "Unknown Gene"; 
-        
-        if (mvRes && mvRes.length > 0) {
-          const hit = mvRes[0];
-          let foundGene = null;
-          if (hit.clinvar && hit.clinvar.gene && hit.clinvar.gene.symbol) foundGene = hit.clinvar.gene.symbol;
-          else if (hit.dbnsfp && hit.dbnsfp.genename) foundGene = hit.dbnsfp.genename;
-          else if (hit.snpeff && hit.snpeff.ann && hit.snpeff.ann[0] && hit.snpeff.ann[0].genename) foundGene = hit.snpeff.ann[0].genename;
-          
-          if (foundGene) {
-            STATE.gene = normalizeGene(foundGene);
-            const [gi, pa] = await Promise.all([
-              Sources.mygene.searchGene(STATE.gene).catch(() => null),
-              Sources.panelapp.searchGene(STATE.gene).catch(() => [])
-            ]);
-            geneInfo = gi;
-            panelAppInh = pa || [];
-          }
+    const fetchPromises = terms.map(async function(term) {
+        try {
+            if (!term) return;
+            let qType = detectQueryType(term);
+            let mvRes = null;
+            let localGene = term;
+            let Q = String.fromCharCode(34);
+
+            if (qType === 'rsid') {
+                mvRes = await Sources.myvariant.searchRsid(term, STATE.assembly).catch(function(){return null;});
+                localGene = "Unknown";
+                if (mvRes && mvRes.length > 0) {
+                    const hit = mvRes[0];
+                    let cv = Array.isArray(hit.clinvar) ? hit.clinvar[0] : hit.clinvar;
+                    let db = Array.isArray(hit.dbnsfp) ? hit.dbnsfp[0] : hit.dbnsfp;
+                    let al = arr(hit.snpeff ? (hit.snpeff.ann || hit.snpeff) : []);
+                    if (cv && cv.gene && cv.gene.symbol) localGene = cv.gene.symbol;
+                    else if (db && db.genename) localGene = db.genename;
+                    else if (al.length > 0 && al[0].genename) localGene = al[0].genename;
+                } else {
+                    failedQueries.push(term);
+                }
+            } else if (qType === 'text') {
+                mvRes = await Sources.myvariant.query(Q + term + Q, { assembly: STATE.assembly, size: 50 }).catch(function(){return null;});
+                localGene = "Unknown"; 
+                if (!mvRes || mvRes.length === 0) failedQueries.push(term);
+            } else {
+                const [ensRes, mRes] = await Promise.all([
+                    Sources.ensembl.searchGene(term, STATE.assembly).catch(function(){return null;}),
+                    Sources.myvariant.searchGene(term, STATE.assembly, MAX_GENE_VARIANTS).catch(function(){return null;})
+                ]);
+                mvRes = mRes;
+                localGene = normalizeGene((ensRes && ensRes.symbol) ? ensRes.symbol : term);
+                if (!mvRes || mvRes.length === 0) failedQueries.push(term);
+            }
+
+            localGene = normalizeGene(localGene) || "Unknown";
+
+            if (localGene !== "Unknown" && !panelAppInhMap[localGene]) {
+                const [gi, pa] = await Promise.all([
+                    Sources.mygene.searchGene(localGene).catch(function(){return null;}),
+                    Sources.panelapp.searchGene(localGene).catch(function(){return [];})
+                ]);
+                if (!firstGeneInfo && gi) firstGeneInfo = gi;
+                panelAppInhMap[localGene] = pa || [];
+            }
+
+            if (mvRes) {
+                for (let i = 0; i < mvRes.length; i++) {
+                    try {
+                        const v = normalizeMyVariantHit(mvRes[i], localGene);
+                        const vGeneStr = normalizeGene(v.gene) || localGene;
+                        if ((!v.clinical.inheritance || v.clinical.inheritance.length === 0) && panelAppInhMap[vGeneStr] && panelAppInhMap[vGeneStr].length > 0) {
+                            v.clinical.inheritance = panelAppInhMap[vGeneStr];
+                        }
+                        v._originalCondition = v.clinical.condition; 
+                        if (v.chromosome || v.rsid) allRaw.push(v);
+                    } catch(err2) {
+                        console.error("Error normalizing variant", err2);
+                    }
+                }
+            }
+        } catch (innerErr) {
+            console.error("Error processing term: " + term, innerErr);
+            failedQueries.push(term);
         }
-      } else {
-        const [ensRes, mRes] = await Promise.all([
-          Sources.ensembl.searchGene(q, STATE.assembly).catch(function () { return null; }),
-          Sources.myvariant.searchGene(q, STATE.assembly, MAX_GENE_VARIANTS).catch(function () { return null; })
-        ]);
-        mvRes = mRes;
-        STATE.gene = normalizeGene((ensRes && ensRes.symbol) ? ensRes.symbol : q);
+    });
 
-        const [gi, pa] = await Promise.all([
-          Sources.mygene.searchGene(STATE.gene).catch(function () { return null; }),
-          Sources.panelapp.searchGene(STATE.gene).catch(function () { return []; })
-        ]);
-        geneInfo = gi;
-        panelAppInh = pa || [];
-      }
-      
-      STATE.geneInheritance = panelAppInh;
-      if (geneInfo) renderGeneSummary(geneInfo, STATE.gene);
+    await Promise.all(fetchPromises);
+    STATE.gene = terms.length === 1 ? normalizeGene(terms[0]) : "Multiple Queries";
+    STATE.variants = deduplicateVariants(allRaw);
 
-      setStep(2);
-      const raw = [];
-      const hits = mvRes || [];
-      for (let i = 0; i < hits.length; i++) {
-        const v = normalizeMyVariantHit(hits[i], STATE.gene);
-        
-        if ((!v.clinical.inheritance || v.clinical.inheritance.length === 0) && STATE.geneInheritance.length > 0) {
-          v.clinical.inheritance = STATE.geneInheritance;
-        }
+    if (failedQueries.length > 0 && notFoundPanel && notFoundList) {
+        notFoundPanel.style.display = 'block';
+        failedQueries.forEach(function(fq) {
+            const d = document.createElement("div");
+            d.className = "not-found-item";
+            d.innerHTML = '<span>' + esc(fq) + '</span>' + 
+                          '<a href="https://www.ncbi.nlm.nih.gov/snp/?term=' + esc(fq) + '" target="_blank" rel="noopener noreferrer">Search dbSNP &#8599;</a>' + 
+                          '<a href="https://www.ncbi.nlm.nih.gov/clinvar/?term=' + esc(fq) + '" target="_blank" rel="noopener noreferrer">Search ClinVar &#8599;</a>';
+            notFoundList.appendChild(d);
+        });
+    }
 
-        if (v.chromosome || v.rsid) raw.push(v);
-      }
-      
-      for (let i = 0; i < raw.length; i++) {
-        if (!raw[i].gene || raw[i].gene === "Unknown Gene") raw[i].gene = STATE.gene;
-      }
-      STATE.variants = deduplicateVariants(raw);
+    if (firstGeneInfo && terms.length === 1) {
+        renderGeneSummary(firstGeneInfo, STATE.gene);
+    } else if (terms.length > 1) {
+        if(gsCard) gsCard.style.display = "none";
+    }
 
-      setStep(3);
-      if (STATE.variants.length > 0) {
-        Cache.set(q, STATE.assembly, { gene: STATE.gene, variants: STATE.variants });
-      } else {
-        showToast('No variants found for "' + q + '".', "warning");
-      }
+    setStep(3);
+    if (STATE.variants.length > 0) {
+      Cache.set(q, STATE.assembly, { gene: STATE.gene, variants: STATE.variants });
+    } else if (failedQueries.length === 0) {
+      showToast('No variants found.', "warning");
     }
 
     setStep(4);
@@ -2553,7 +2928,7 @@ function initEvents() {
     const chip = $("#detectedChip");
     if (chip) {
       const t = detectQueryType(q);
-      chip.textContent = t === "rsid" ? "rsID" : (q.trim() ? "gene" : "—");
+      chip.textContent = t === "rsid" ? "rsID" : (t === 'text' ? "Text/HLA" : (q.trim() ? "Gene(s)" : "—"));
     }
   });
   safeBind("#clearQueryBtn", "click", function () {
@@ -2654,6 +3029,8 @@ function initEvents() {
       else {
         const dr = $("#drawer");
         if (dr && dr.classList.contains("open")) closeDrawer();
+        const cmd = $("#cartModalBackdrop");
+        if (cmd && cmd.classList.contains("open")) cmd.classList.remove("open");
       }
     }
   });
@@ -2662,6 +3039,23 @@ function initEvents() {
     Cache.clear();
     showToast("Cache cleared", "success");
   });
+
+  safeBind("#openCartBtn", "click", function() {
+    const m = $("#cartModalBackdrop");
+    if (m) {
+       m.classList.add("open");
+       renderCartTable();
+    }
+  });
+  
+  safeBind("#cartModalClose", "click", function() {
+    const m = $("#cartModalBackdrop");
+    if (m) m.classList.remove("open");
+  });
+
+  safeBind("#btnExportCSV", "click", exportToCSV);
+  safeBind("#modalClose", "click", closeModal);
+  safeBind("#modalBackdrop", "click", function (e) { if (e.target === this) closeModal(); });
 }
 
 (function init() {
@@ -2676,6 +3070,16 @@ function initEvents() {
     else pss.value = String(STATE.pageSize);
   }
 })();
+</script>
+
+<script>
+(function () {
+  const key = "variantFinderCartV2";
+  try { const saved = JSON.parse(localStorage.getItem(key) || "[]"); if (Array.isArray(saved)) STATE.cart = saved.filter(function(v){ return v && v._uid; }); } catch(e) { localStorage.removeItem(key); }
+  const originalToggleCart = toggleCart;
+  toggleCart = function(v) { originalToggleCart(v); try { localStorage.setItem(key, JSON.stringify(STATE.cart)); } catch(e) {} };
+  updateCartUI();
+}());
 </script>
 </body>
 </html>
